@@ -24,6 +24,7 @@ pip-selfcheck.json
 [Ss]cripts
 pyvenv.cfg
 .venv
+.idea
 pip-selfcheck.json
 
 ### Zsh template
