@@ -5,8 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4cde622f-810e-479d-b80b-d3a98055e46c" name="Changes" comment="Inital structure">
+      <change afterPath="$PROJECT_DIR$/backend/routes/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/backend/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/city.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/city.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/restaurants.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/restaurants.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/weather.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/weather.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -17,6 +23,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Dockerfile" />
+        <option value="Python Script" />
       </list>
     </option>
   </component>
