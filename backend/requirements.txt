@@ -4,3 +4,7 @@ pymongo
 python-dotenv
 requests
 pydantic
+plotly
+pandas
+geopy
+opencage

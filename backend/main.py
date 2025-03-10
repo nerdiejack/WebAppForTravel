@@ -1,19 +1,23 @@
 from fastapi import FastAPI
-import os
-from pymongo import MongoClient
-from routes import weather, city, restaurants
+from fastapi.middleware.cors import CORSMiddleware
+from routes import weather, city, restaurants, map
 
 app = FastAPI()
 
-# Connect to MongoDB
-mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-client = MongoClient(mongo_uri)
-db = client.travel_db
+# Enable CORS to allow frontend requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins (change this in production)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
-# Include routers
+# Include API routers
 app.include_router(weather.router, prefix="/api", tags=["Weather"])
 app.include_router(city.router, prefix="/api", tags=["Cities"])
 app.include_router(restaurants.router, prefix="/api", tags=["Restaurants"])
+app.include_router(map.router, prefix="/api", tags=["Map"])
 
 @app.get("/")
 def read_root():
