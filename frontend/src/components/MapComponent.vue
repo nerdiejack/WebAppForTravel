@@ -1,62 +1,86 @@
 <template>
   <div class="map-wrapper">
-    <div class="map-container" id="map"></div>
+    <LMap
+      ref="mapRef"
+      v-if="isMapLoaded"
+      :zoom="zoom"
+      :center="[13.736717, 100.523186]"
+      class="map-container"
+      @update:zoom="resizeMap"
+      @update:center="resizeMap"
+    >
+      <LTileLayer :url="tileLayerUrl" />
+      <LMarker v-for="city in cities" :key="city.name" :lat-lng="[city.latitude, city.longitude]">
+        <LPopup>
+          <strong>{{ city.name }}</strong><br />
+          {{ city.country }}<br />
+          Lat: {{ city.latitude }}, Lon: {{ city.longitude }}
+        </LPopup>
+      </LMarker>
+    </LMap>
   </div>
 </template>
 
 <script>
-import { onMounted } from "vue";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { getCities } from "../services/api"; // Import API function
+import { ref, onMounted, nextTick } from "vue";
+import { getCities } from "../services/api";
+import { LMap, LTileLayer, LMarker, LPopup } from "@vue-leaflet/vue-leaflet";
 
 export default {
+  components: { LMap, LTileLayer, LMarker, LPopup },
   setup() {
+    const cities = ref([]);
+    const tileLayerUrl = ref("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png");
+    const zoom = ref(5);
+    const isMapLoaded = ref(false);
+    const mapRef = ref(null);
+
+    const resizeMap = () => {
+      nextTick(() => {
+        if (mapRef.value?.leafletObject) {
+          console.log("Resizing map...");
+          mapRef.value.leafletObject.invalidateSize();
+        }
+      });
+    };
+
     onMounted(async () => {
-      // Initialize the map
-      const map = L.map("map").setView([13.736717, 100.523186], 5);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
       try {
-        // Fetch city data from FastAPI
-        const cities = await getCities();
-        console.log("Cities loaded:", cities);
+        cities.value = await getCities();
+        console.log("Cities loaded:", cities.value);
+        isMapLoaded.value = true;
 
-        // Add markers for each city
-        cities.forEach(city => {
-          L.marker([city.latitude, city.longitude])
-            .addTo(map)
-            .bindPopup(`<strong>${city.name}</strong><br>${city.country}<br>Lat: ${city.latitude}, Lon: ${city.longitude}`);
-        });
+        // Ensure the map resizes correctly after the component is loaded
+        setTimeout(resizeMap, 1000);
       } catch (error) {
         console.error("Error fetching cities:", error);
       }
     });
+
+    return { cities, tileLayerUrl, zoom, isMapLoaded, mapRef, resizeMap };
   }
 };
 </script>
 
 <style>
-/* Ensure the wrapper expands */
+/* Ensure the map container takes full width and height */
 .map-wrapper {
-  width: 100vw; /* Full screen width */
-  height: 90vh; /* 90% of the screen height */
+  width: 100vw;
+  height: 90vh;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-/* Ensure the map takes full width */
+/* Fix map loading issues */
 .map-container {
-  width: 100%;  /* Take full width */
-  height: 100%; /* Take full height */
+  width: 100%;
+  height: 100%;
 }
 
-/* Ensure no restrictions from body */
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
+/* Fix leaflet tile loading issues */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
 }
 </style>

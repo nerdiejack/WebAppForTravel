@@ -1,5 +1,8 @@
-import { createApp } from 'vue'
-import './style.css'
-import App from './App.vue'
+import { createApp } from 'vue';
+import './style.css';
+import App from './App.vue';
 
-createApp(App).mount('#app')
+// ✅ Add Leaflet CSS (Fixes Misaligned Tiles)
+import "leaflet/dist/leaflet.css";
+
+createApp(App).mount('#app');
