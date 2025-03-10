@@ -1,23 +1,13 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_URL = 'http://localhost:8000/api';
+const API_BASE_URL = "http://localhost:8000/api";
 
 export const getCities = async () => {
-    try {
-        const response = await axios.get(`${API_URL}/map/`);
-        return response.data.cities;
-    } catch (error) {
-        console.error("Error fetching city data:", error);
-        return [];
-    }
+  const response = await axios.get(`${API_BASE_URL}/map/`);
+  return response.data.cities;
 };
 
 export const getWeather = async (city) => {
-    try {
-        const response = await axios.get(`${API_URL}/weather/?city=${city}`);
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching weather data:", error);
-        return null;
-    }
+  const response = await axios.get(`${API_BASE_URL}/weather/?city=${city}`);
+  return response.data;
 };
