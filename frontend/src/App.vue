@@ -1,34 +1,43 @@
 <template>
-  <div class="app-container">
-    <h1>Travel Planner</h1>
-    <MapComponent />
+  <div class="app">
+    <Map />
   </div>
 </template>
 
 <script>
-import MapComponent from "./components/MapComponent.vue";
+import Map from './components/Map.vue'
 
 export default {
-  components: { MapComponent }
-};
+  name: 'App',
+  components: {
+    Map
+  }
+}
 </script>
 
 <style>
-/* Ensure full width and height */
-.app-container {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Remove default margins */
-html, body {
+* {
   margin: 0;
   padding: 0;
-  width: 100%;
+  box-sizing: border-box;
+}
+
+html, body {
   height: 100%;
+  width: 100%;
+}
+
+.app {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+}
+
+/* Reset default margins */
+body {
+  margin: 0;
+  padding: 0;
 }
 </style>
