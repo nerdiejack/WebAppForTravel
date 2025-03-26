@@ -7,6 +7,10 @@ A comprehensive travel planning and hotel reservation system built with Vue.js, 
 - 🏨 Complete hotel reservation system
 - 🗺️ Interactive Google Maps integration
 - 📊 Admin dashboard for managing reservations
+  - Detailed booking information view
+  - Edit hotel coordinates (latitude/longitude)
+  - Quick access to map location
+  - Status management (confirmed, cancelled, completed)
 - 🎨 Modern, responsive design with Bootstrap
 - 🔄 Dynamic map type switching (Road, Satellite, Terrain)
 - 📱 Mobile-friendly interface
@@ -14,6 +18,7 @@ A comprehensive travel planning and hotel reservation system built with Vue.js, 
 - 🛡️ Secure configuration with proper CSP headers
 - 🔍 Search and filter reservations
 - 📅 Date-based booking management
+- 🌤️ Real-time weather information for hotel locations
 
 ## Tech Stack
 
