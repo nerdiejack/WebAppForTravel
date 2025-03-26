@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 pymongo
+motor
 python-dotenv
 requests
 pydantic
@@ -8,3 +9,4 @@ plotly
 pandas
 geopy
 opencage
+python-multipart

@@ -1,23 +1,24 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import weather, city, restaurants, map
+from routes import weather, city, restaurants, map, hotels, booking_sync
 
 app = FastAPI()
 
-# Enable CORS to allow frontend requests
+# Enable CORS for the development environment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins (change this in production)
-    allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"]
 )
 
-# Include API routers
-app.include_router(weather.router, prefix="/api", tags=["Weather"])
-app.include_router(city.router, prefix="/api", tags=["Cities"])
-app.include_router(restaurants.router, prefix="/api", tags=["Restaurants"])
-app.include_router(map.router, prefix="/api", tags=["Map"])
+# Include API routers without /api prefix
+app.include_router(weather.router, tags=["Weather"])
+app.include_router(city.router, tags=["Cities"])
+app.include_router(restaurants.router, tags=["Restaurants"])
+app.include_router(map.router, tags=["Map"])
+app.include_router(hotels.router, tags=["Hotels"])
+app.include_router(booking_sync.router, tags=["Booking Sync"])
 
 @app.get("/")
 def read_root():

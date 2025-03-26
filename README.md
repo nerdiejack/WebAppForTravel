@@ -1,31 +1,47 @@
 # Travel Web Application
 
-A modern web application for travel planning built with Vue.js and Google Maps integration. This application provides an interactive mapping experience for travel planning and exploration.
+A comprehensive travel planning and hotel reservation system built with Vue.js, FastAPI, and MongoDB. This full-stack application provides an interactive mapping experience for travel planning, hotel bookings, and administrative management.
 
 ## Features
 
+- 🏨 Complete hotel reservation system
 - 🗺️ Interactive Google Maps integration
+- 📊 Admin dashboard for managing reservations
 - 🎨 Modern, responsive design with Bootstrap
 - 🔄 Dynamic map type switching (Road, Satellite, Terrain)
 - 📱 Mobile-friendly interface
 - 🎯 Centered map view on Thailand
 - 🛡️ Secure configuration with proper CSP headers
+- 🔍 Search and filter reservations
+- 📅 Date-based booking management
 
 ## Tech Stack
 
-- **Frontend Framework**: Vue.js 3
+### Frontend
+
+- **Framework**: Vue.js 3
 - **Build Tool**: Vite
 - **Styling**: Bootstrap 5
 - **Maps**: Google Maps JavaScript API
-- **Container**: Docker
+- **HTTP Client**: Axios
 - **Server**: Nginx
+
+### Backend
+
+- **Framework**: FastAPI
+- **Database**: MongoDB
+- **Async Driver**: Motor
+- **Data Validation**: Pydantic
+- **Container**: Docker
 
 ## Prerequisites
 
 Before running this application, make sure you have:
 
 - Node.js (v16 or higher)
+- Python 3.8 or higher
 - Docker and Docker Compose
+- MongoDB
 - A Google Maps API key
 
 ## Setup and Installation
@@ -44,88 +60,142 @@ cd frontend
 npm install
 ```
 
-3. Create a development environment:
+3. Install backend dependencies:
 
 ```bash
-npm run dev
+cd backend
+pip install -r requirements.txt
 ```
 
-4. For production build with Docker:
+4. Set up environment variables:
+
+```bash
+# Frontend (.env)
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
+# Backend (.env)
+MONGODB_URL=your_mongodb_url
+```
+
+5. For development:
+
+```bash
+# Frontend
+npm run dev
+
+# Backend
+uvicorn main:app --reload
+```
+
+6. For production with Docker:
 
 ```bash
 docker-compose up --build
 ```
-
-## Environment Configuration
-
-The application requires the following environment variables:
-
-- `GOOGLE_MAPS_API_KEY`: Your Google Maps API key
 
 ## Project Structure
 
 ```
-frontend/
-├── src/
-│   ├── components/
-│   │   └── Map.vue         # Main map component
-│   ├── App.vue             # Root component
-│   ├── main.js             # Application entry point
-│   └── style.css           # Global styles
-├── nginx.conf              # Nginx configuration
-├── Dockerfile              # Frontend container configuration
-├── vite.config.js         # Vite configuration
-└── package.json           # Dependencies and scripts
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Map.vue              # Map component
+│   │   │   ├── HotelMap.vue         # Hotel reservation map
+│   │   │   └── AdminDashboard.vue   # Admin interface
+│   │   ├── utils/
+│   │   │   └── axios.js             # API client configuration
+│   │   ├── App.vue                  # Root component
+│   │   └── main.js                  # Application entry
+│   ├── nginx.conf                   # Nginx configuration
+│   └── Dockerfile                   # Frontend container
+│
+├── backend/
+│   ├── routes/
+│   │   ├── hotels.py                # Hotel endpoints
+│   │   └── maps.py                  # Map endpoints
+│   ├── models.py                    # Data models
+│   ├── database.py                  # Database configuration
+│   ├── main.py                      # FastAPI application
+│   └── requirements.txt             # Python dependencies
+│
+└── docker-compose.yml               # Container orchestration
 ```
 
 ## Features in Detail
 
+### Hotel Reservation System
+
+- Complete CRUD operations for hotel bookings
+- Real-time search and filtering
+- Date-based availability management
+- Status tracking (confirmed, cancelled, completed)
+- Special requests handling
+- Price calculation
+
+### Admin Dashboard
+
+- Comprehensive reservation management
+- Quick search and filtering
+- Bulk operations support
+- Status updates
+- Detailed booking information
+- Responsive table view
+
 ### Google Maps Integration
 
-- Custom layer switcher for different map views
-- Responsive map container that adapts to viewport
-- Optimized map controls placement
-- Smooth transitions between map types
+- Custom layer switcher
+- Hotel location plotting
+- Interactive booking interface
+- Responsive map container
+- Optimized controls placement
 
-### Responsive Design
+### API Endpoints
 
-- Bootstrap-based grid system
-- Mobile-first approach
-- Consistent margins and padding
-- Optimized for different screen sizes
+#### Hotels
 
-### Security
-
-- Content Security Policy (CSP) headers
-- Secure resource loading
-- Protected API endpoints
-- CORS configuration
+- `GET /api/hotels` - List all reservations
+- `GET /api/hotels/{city}` - Get hotels by city
+- `POST /api/hotels` - Create reservation
+- `PUT /api/hotels/{id}` - Update reservation
+- `DELETE /api/hotels/{id}` - Delete reservation
 
 ## Development
 
-To start development:
-
-1. Run the development server:
+### Frontend Development
 
 ```bash
+cd frontend
 npm run dev
 ```
 
-2. Access the application at `http://localhost:4200`
-
-## Building for Production
-
-1. Build the frontend:
+### Backend Development
 
 ```bash
-npm run build
+cd backend
+uvicorn main:app --reload
 ```
 
-2. Build and run Docker containers:
+### Working with Docker
 
 ```bash
+# Build and start all services
 docker-compose up --build
+
+# Stop all services
+docker-compose down
+
+# View logs
+docker-compose logs -f
 ```
+
+## Security
+
+- Content Security Policy (CSP) headers
+- CORS configuration
+- MongoDB security best practices
+- Input validation
+- Error handling
+- API rate limiting
 
 ## Contributing
 
@@ -143,5 +213,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - Google Maps JavaScript API
 - Vue.js team
+- FastAPI team
 - Bootstrap team
+- MongoDB team
 - Docker community

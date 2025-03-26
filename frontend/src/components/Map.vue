@@ -19,7 +19,7 @@
 </template>
 
 <script>
-import { Loader } from '@googlemaps/js-api-loader';
+import { loadGoogleMaps } from '../utils/mapLoader';
 
 export default {
   name: 'MapComponent',
@@ -38,14 +38,8 @@ export default {
     }
   },
   async mounted() {
-    const loader = new Loader({
-      apiKey: 'AIzaSyB4V-NcENgmVIrhZE6fQjzkSKZETcgZKTM',
-      version: 'weekly',
-      language: 'en'
-    });
-
     try {
-      const google = await loader.load();
+      const google = await loadGoogleMaps();
       
       // Initialize the map with more Google-like defaults
       this.map = new google.maps.Map(document.getElementById('map'), {
