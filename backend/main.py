@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import weather, city, restaurants, map, hotels, booking_sync
+from routes import city, restaurants, map, hotels, booking_sync
 
 app = FastAPI()
 
@@ -13,7 +13,6 @@ app.add_middleware(
 )
 
 # Include API routers without /api prefix
-app.include_router(weather.router, tags=["Weather"])
 app.include_router(city.router, tags=["Cities"])
 app.include_router(restaurants.router, tags=["Restaurants"])
 app.include_router(map.router, tags=["Map"])

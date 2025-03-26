@@ -11,6 +11,13 @@ A comprehensive travel planning and hotel reservation system built with Vue.js, 
   - Edit hotel coordinates (latitude/longitude)
   - Quick access to map location
   - Status management (confirmed, cancelled, completed)
+- 🚂 Travel planning and route search
+  - Multi-modal transport options (flights, trains, buses)
+  - Real-time route information using Google Maps
+  - Interactive route visualization
+  - Price comparison
+  - Flight search via Skyscanner
+  - Driving and transit directions
 - 🎨 Modern, responsive design with Bootstrap
 - 🔄 Dynamic map type switching (Road, Satellite, Terrain)
 - 📱 Mobile-friendly interface
@@ -28,6 +35,13 @@ A comprehensive travel planning and hotel reservation system built with Vue.js, 
 - **Build Tool**: Vite
 - **Styling**: Bootstrap 5
 - **Maps**: Google Maps JavaScript API
+  - Maps
+  - Places
+  - Distance Matrix
+  - Directions
+- **Travel APIs**:
+  - Skyscanner API (for flights)
+  - Google Maps Distance Matrix (for driving and transit)
 - **HTTP Client**: Axios
 - **Server**: Nginx
 
@@ -47,7 +61,12 @@ Before running this application, make sure you have:
 - Python 3.8 or higher
 - Docker and Docker Compose
 - MongoDB
-- A Google Maps API key
+- A Google Maps API key with the following APIs enabled:
+  - Maps JavaScript API
+  - Places API
+  - Distance Matrix API
+  - Directions API
+- A Skyscanner API key (for flight search)
 
 ## Setup and Installation
 
@@ -77,6 +96,7 @@ pip install -r requirements.txt
 ```bash
 # Frontend (.env)
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+VITE_SKYSCANNER_API_KEY=your_skyscanner_api_key
 
 # Backend (.env)
 MONGODB_URL=your_mongodb_url
@@ -153,6 +173,31 @@ docker-compose up --build
 - Interactive booking interface
 - Responsive map container
 - Optimized controls placement
+
+### Travel Planning System
+
+- Multi-modal transport search
+  - Driving directions with real-time traffic
+  - Public transit routes
+  - Flight options via Skyscanner
+- Real-time route information
+  - Duration and distance
+  - Price estimates
+  - Traffic conditions
+- Interactive route visualization
+  - Detailed turn-by-turn directions
+  - Route alternatives
+  - Waypoints support
+- Price comparison across different transport modes
+- Location autocomplete
+- Current location detection
+- Booking integration with transport providers
+- Detailed journey information including:
+  - Duration and distance
+  - Departure and arrival times
+  - Number of stops
+  - Price breakdown
+  - Transport type
 
 ### API Endpoints
 
