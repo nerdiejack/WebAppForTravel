@@ -1,56 +1,43 @@
 <template>
   <div class="app">
-    <nav class="navbar">
-      <button @click="currentView = 'map'" :class="{ active: currentView === 'map' }">Map View</button>
-      <button @click="currentView = 'hotels'" :class="{ active: currentView === 'hotels' }">Hotel Reservations</button>
-      <button @click="currentView = 'admin'" :class="{ active: currentView === 'admin' }">Admin Dashboard</button>
-      <button @click="currentView = 'travel'" :class="{ active: currentView === 'travel' }">Travel Planner</button>
-    </nav>
-    <main class="main-content">
-      <template v-if="currentView === 'map'">
-        <Map :zoom-to-location="zoomToLocation" />
-      </template>
-      <template v-if="currentView === 'hotels'">
-        <HotelMap />
-      </template>
-      <template v-if="currentView === 'admin'">
-        <AdminDashboard />
-      </template>
-      <template v-if="currentView === 'travel'">
-        <TravelPlanner />
-      </template>
-    </main>
+    <IntroAnimation v-if="showIntro" @animation-complete="showIntro = false" />
+    <template v-else>
+      <nav class="navbar">
+        <button @click="currentView = 'hotels'" :class="{ active: currentView === 'hotels' }">Hotel Reservations</button>
+        <button @click="currentView = 'admin'" :class="{ active: currentView === 'admin' }">Admin Dashboard</button>
+      </nav>
+      <main class="main-content">
+        <template v-if="currentView === 'hotels'">
+          <HotelMap />
+        </template>
+        <template v-if="currentView === 'admin'">
+          <AdminDashboard />
+        </template>
+      </main>
+    </template>
   </div>
 </template>
 
 <script>
 import { ref, shallowRef } from 'vue'
-import Map from './components/Map.vue'
 import HotelMap from './components/HotelMap.vue'
 import AdminDashboard from './components/AdminDashboard.vue'
-import TravelPlanner from './components/TravelPlanner.vue'
+import IntroAnimation from './components/IntroAnimation.vue'
 
 export default {
   name: 'App',
   components: {
-    Map,
     HotelMap,
     AdminDashboard,
-    TravelPlanner
+    IntroAnimation
   },
   setup() {
-    const currentView = shallowRef('map')
-    const zoomToLocation = shallowRef(null)
-
-    const handleZoomToLocation = (location) => {
-      zoomToLocation.value = location
-      currentView.value = 'map'
-    }
+    const currentView = shallowRef('hotels')
+    const showIntro = ref(true)
 
     return {
       currentView,
-      zoomToLocation,
-      handleZoomToLocation
+      showIntro
     }
   }
 }

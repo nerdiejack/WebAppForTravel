@@ -5,12 +5,17 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install
 
+# Copy public directory first to ensure images are available
+COPY public ./public
+
+# Copy the rest of the application
 COPY . .
 RUN npm run build
 
 # Use Nginx to serve Vue app
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/public/images /usr/share/nginx/html/images
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
