@@ -13,6 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy app files
 COPY . .
 
+# Create uploads directory and set permissions
+RUN mkdir -p uploads && chmod 755 uploads
+
 # Expose FastAPI port
 EXPOSE 8000
 

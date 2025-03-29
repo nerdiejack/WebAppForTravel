@@ -132,6 +132,7 @@ import { ref, onMounted, onUnmounted, nextTick, reactive } from 'vue'
 import api from '../utils/axios'
 import { loadGoogleMaps, cleanupGoogleMaps } from '../utils/mapLoader'
 import { getWeatherData } from '../utils/weatherApi'
+import { Collapse } from 'bootstrap'
 
 export default {
   name: 'HotelMap',
@@ -741,8 +742,10 @@ export default {
       // Close all accordion items
       const accordionItems = document.querySelectorAll('.accordion-collapse.show');
       accordionItems.forEach(item => {
-        const bsCollapse = new bootstrap.Collapse(item);
-        bsCollapse.hide();
+        const collapse = Collapse.getInstance(item)
+        if (collapse) {
+          collapse.hide()
+        }
       });
 
       selectedHotel.value = null;
@@ -764,6 +767,16 @@ export default {
         map.value.setZoom(15);
       }
     }
+
+    // Initialize Bootstrap components
+    onMounted(() => {
+      // Initialize all collapse elements
+      document.querySelectorAll('.accordion-collapse').forEach(collapseEl => {
+        new Collapse(collapseEl, {
+          toggle: false
+        })
+      })
+    })
 
     return {
       mapContainer,

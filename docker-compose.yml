@@ -10,6 +10,7 @@ services:
       - MONGO_URI=mongodb://db:27017/travel_db
     volumes:
       - ./backend:/app
+      - uploads_data:/app/uploads
     restart: always
     networks:
       - app_network
@@ -40,3 +41,4 @@ networks:
 
 volumes:
   mongo_data:
+  uploads_data:

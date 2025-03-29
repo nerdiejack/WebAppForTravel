@@ -1,42 +1,35 @@
 <template>
-  <div class="app">
+  <div id="app">
     <IntroAnimation v-if="showIntro" @animation-complete="showIntro = false" />
     <template v-else>
-      <nav class="navbar">
-        <button @click="currentView = 'hotels'" :class="{ active: currentView === 'hotels' }">Hotel Reservations</button>
-        <button @click="currentView = 'admin'" :class="{ active: currentView === 'admin' }">Admin Dashboard</button>
-      </nav>
-      <main class="main-content">
-        <template v-if="currentView === 'hotels'">
-          <HotelMap />
-        </template>
-        <template v-if="currentView === 'admin'">
-          <AdminDashboard />
-        </template>
-      </main>
+      <Navigation />
+      <div class="container-fluid">
+        <router-view></router-view>
+      </div>
     </template>
   </div>
 </template>
 
 <script>
-import { ref, shallowRef } from 'vue'
-import HotelMap from './components/HotelMap.vue'
-import AdminDashboard from './components/AdminDashboard.vue'
+import { ref, onMounted } from 'vue'
+import Navigation from './components/Navigation.vue'
 import IntroAnimation from './components/IntroAnimation.vue'
+import { shouldShowIntro } from './utils/cookies'
 
 export default {
   name: 'App',
   components: {
-    HotelMap,
-    AdminDashboard,
+    Navigation,
     IntroAnimation
   },
   setup() {
-    const currentView = shallowRef('hotels')
-    const showIntro = ref(true)
+    const showIntro = ref(false)
+
+    onMounted(() => {
+      showIntro.value = shouldShowIntro()
+    })
 
     return {
-      currentView,
       showIntro
     }
   }
@@ -44,63 +37,24 @@ export default {
 </script>
 
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html, body {
-  height: 100%;
-  width: 100%;
-}
-
-.app {
+#app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #2c3e50;
   min-height: 100vh;
-  width: 100%;
   display: flex;
   flex-direction: column;
-  background-color: #f8f9fa;
 }
 
-.navbar {
-  padding: 1rem;
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  display: flex;
-  gap: 1rem;
-  z-index: 1000;
-}
-
-.navbar button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  background-color: #f0f0f0;
-  transition: background-color 0.2s ease;
-}
-
-.navbar button.active {
-  background-color: #007bff;
-  color: white;
-}
-
-.navbar button:hover:not(.active) {
-  background-color: #e0e0e0;
-}
-
-.main-content {
+.container-fluid {
   flex: 1;
-  position: relative;
-  overflow: hidden;
+  padding: 1rem;
 }
 
-.main-content > * {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa;
 }
 </style>

@@ -50,6 +50,16 @@
 
 <script>
 import { ref, onMounted, onUnmounted } from 'vue'
+import angkorWat from '../assets/images/thailand/angkor-wat.jpg'
+import angkorThom from '../assets/images/thailand/angkor-thom.jpg'
+import elephantSanctuary from '../assets/images/thailand/elephant-sanctuary.jpg'
+import khaoYaiHornbill from '../assets/images/thailand/khao_yai_hornbill.jpg'
+import kuangSiFalls from '../assets/images/thailand/kuang-si-falls.jpg'
+import luangPrabang from '../assets/images/thailand/luang_prabang.jpg'
+import plainOfJars from '../assets/images/thailand/plain-of-jars.jpg'
+import railayBeach from '../assets/images/thailand/railay-beach.jpg'
+import vangVieng from '../assets/images/thailand/vang_vieng.jpg'
+import watArun from '../assets/images/thailand/wat_arun.jpg'
 
 export default {
   name: 'IntroAnimation',
@@ -61,36 +71,16 @@ export default {
     let slideInterval
 
     const images = [
-      {
-        url: '/images/thailand/angkor-wat.jpg',
-        title: 'Angkor Wat',
-        location: 'Siem Reap, Cambodia'
-      },
-      {
-        url: '/images/thailand/vang_vieng.jpg',
-        title: 'Vang Vieng',
-        location: 'Vang Vieng, Laos'
-      },
-      {
-        url: '/images/thailand/luang_prabang.jpg',
-        title: 'Luang Prabang',
-        location: 'Luang Prabang, Laos'
-      },
-      {
-        url: '/images/thailand/wat_arun.jpg',
-        title: 'Wat Arun',
-        location: 'Bangkok, Thailand'
-      },
-      {
-        url: '/images/thailand/khao_yai_hornbill.jpg',
-        title: 'Khao Yai National Park',
-        location: 'Nakhon Ratchasima, Thailand'
-      },
-      {
-        url: '/images/thailand/elephant-sanctuary.jpg',
-        title: 'Elephant Sanctuary',
-        location: 'Chiang Mai, Thailand'
-      }
+      { url: angkorWat, title: 'Angkor Wat', location: 'Siem Reap, Cambodia' },
+      { url: angkorThom, title: 'Angkor Thom', location: 'Siem Reap, Cambodia' },
+      { url: elephantSanctuary, title: 'Elephant Sanctuary', location: 'Chiang Mai, Thailand' },
+      { url: khaoYaiHornbill, title: 'Khao Yai National Park', location: 'Thailand' },
+      { url: kuangSiFalls, title: 'Kuang Si Falls', location: 'Luang Prabang, Laos' },
+      { url: luangPrabang, title: 'Luang Prabang', location: 'Laos' },
+      { url: plainOfJars, title: 'Plain of Jars', location: 'Xieng Khouang, Laos' },
+      { url: railayBeach, title: 'Railay Beach', location: 'Krabi, Thailand' },
+      { url: vangVieng, title: 'Vang Vieng', location: 'Laos' },
+      { url: watArun, title: 'Wat Arun', location: 'Bangkok, Thailand' }
     ]
 
     const updateProgress = () => {
@@ -224,7 +214,7 @@ export default {
   height: 100%;
   z-index: 10001;
   pointer-events: none;
-  background-image: url('/images/thailand/angkor-wat.jpg');
+  background-image: v-bind('`url(${images[0].url})`');
   background-size: cover;
   background-position: center;
 }
