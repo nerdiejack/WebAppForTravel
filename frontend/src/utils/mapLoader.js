@@ -2,7 +2,7 @@ import { Loader } from '@googlemaps/js-api-loader'
 
 // Create a single instance of the loader with CSP-friendly settings
 const loader = new Loader({
-  apiKey: 'AIzaSyB4V-NcENgmVIrhZE6fQjzkSKZETcgZKTM',
+  apiKey: process.env.VUE_APP_GOOGLE_MAPS_API_KEY,
   version: 'weekly',
   libraries: ['places', 'geometry'],
   language: 'en',
@@ -53,7 +53,6 @@ export const loadGoogleMaps = async () => {
   }
 }
 
-// Add a cleanup function
 export const cleanupGoogleMaps = () => {
   loadPromise = null
   googleMaps = null
