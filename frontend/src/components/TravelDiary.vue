@@ -1,121 +1,110 @@
 <template>
   <div class="travel-diary-container">
-    <div class="diary-form">
-      <h3>Travel Diary</h3>
-      <button class="btn btn-primary" @click="openEditor">
-        <i class="fas fa-plus me-2"></i>New Entry
-      </button>
-    </div>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+      <div class="container-fluid">
+        <span class="navbar-brand">Travel Diary</span>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarContent">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <div class="dropdown">
+                <button class="nav-link dropdown-toggle" @click="toggleDropdown">
+                  <i class="fas fa-cog"></i> Options
+                </button>
+                <div v-if="isDropdownOpen" class="dropdown-menu dropdown-menu-end show">
+                  <a class="dropdown-item" href="#" @click.prevent="openEditor">
+                    <i class="fas fa-plus me-2"></i>New Entry
+                  </a>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
 
-    <div class="map-wrapper">
-      <transition name="fade" mode="out-in">
-        <div v-if="!selectedEntry" class="map-container" ref="mapContainer">
-          <!-- Loading overlay -->
-          <div v-if="loading" class="map-overlay">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="map-wrapper">
+        <transition name="fade" mode="out-in">
+          <div v-if="!selectedEntry" class="map-container" ref="mapContainer">
+            <!-- Loading overlay -->
+            <div v-if="loading" class="map-overlay">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
             </div>
-          </div>
 
-          <!-- Error overlay -->
-          <div v-if="error" class="map-overlay error">
-            <div class="alert alert-danger" role="alert">
-              {{ error }}
-              <button @click="retryLoading" class="btn btn-outline-danger btn-sm ms-2">
-                Retry
-              </button>
+            <!-- Error overlay -->
+            <div v-if="error" class="map-overlay error">
+              <div class="alert alert-danger" role="alert">
+                {{ error }}
+                <button @click="retryLoading" class="btn btn-outline-danger btn-sm ms-2">
+                  Retry
+                </button>
+              </div>
             </div>
-          </div>
 
-          <button v-if="!loading && !error" @click="viewAllLocations" class="view-all-btn">
-            <i class="fas fa-globe-americas me-2"></i>View All Locations
+            <button v-if="!loading && !error" @click="viewAllLocations" class="view-all-btn">
+              <i class="fas fa-globe-americas me-2"></i>View All Locations
+            </button>
+          </div>
+          <diary-entry-display
+            v-else
+            :entry="selectedEntry"
+            @back-to-map="closeSelectedEntry"
+            @edit="editEntry"
+          />
+        </transition>
+      </div>
+
+      <div class="diary-list">
+        <div v-if="loading" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+
+        <div v-else-if="error" class="alert alert-danger" role="alert">
+          {{ error }}
+          <button @click="retryLoading" class="btn btn-outline-danger btn-sm ms-2">
+            Retry
           </button>
         </div>
-        <diary-entry-display
-          v-else
-          :entry="selectedEntry"
-          @back-to-map="closeSelectedEntry"
-          @edit="editEntry"
-        />
-      </transition>
-    </div>
 
-    <div class="diary-list">
-      <h3>Diary Entries</h3>
-      
-      <!-- Loading state -->
-      <div v-if="loading" class="text-center py-4">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
+        <div v-else-if="entries.length === 0" class="text-center py-4 text-muted">
+          <i class="fas fa-book-open fa-3x mb-3"></i>
+          <p>No diary entries yet. Start documenting your journey!</p>
         </div>
-      </div>
 
-      <!-- Error state -->
-      <div v-else-if="error" class="alert alert-danger" role="alert">
-        {{ error }}
-        <button @click="retryLoading" class="btn btn-outline-danger btn-sm ms-2">
-          Retry
-        </button>
-      </div>
-
-      <!-- Empty state -->
-      <div v-else-if="entries.length === 0" class="text-center py-4 text-muted">
-        <i class="fas fa-book-open fa-3x mb-3"></i>
-        <p>No diary entries yet. Start documenting your journey!</p>
-      </div>
-
-      <!-- Diary entries -->
-      <div v-else class="accordion" id="diaryAccordion">
-        <div v-for="(entry, index) in entries" 
-             :key="entry._id" 
-             class="accordion-item diary-card"
-             @click="handleDiaryEntryClick(entry)">
-          <h2 class="accordion-header">
-            <button class="accordion-button collapsed"
-                    type="button"
-                    :data-bs-target="'#collapse' + index"
-                    data-bs-toggle="collapse">
-              <div>
-                <strong>{{ entry.title }}</strong>
-                <div class="text-muted">{{ entry.location.name }}</div>
+        <div v-else class="diary-entries">
+          <div v-for="entry in entries" 
+               :key="entry._id" 
+               class="diary-card" 
+               @click="handleDiaryEntryClick(entry)">
+            <div class="diary-card-content">
+              <div class="diary-card-left">
+                <div v-if="entry.images.length > 0" class="preview-image">
+                  <img :src="entry.images[0]" :alt="entry.title">
+                </div>
+                <div v-else class="preview-image no-image">
+                  <i class="fas fa-image"></i>
+                </div>
               </div>
-            </button>
-          </h2>
-          <div :id="'collapse' + index" 
-               class="accordion-collapse collapse"
-               data-bs-parent="#diaryAccordion">
-            <div class="accordion-body">
-              <div class="entry-details">
-                <div class="d-flex justify-content-end mb-2">
-                  <button class="btn btn-outline-secondary btn-sm me-2" @click.stop="closeEntry(index)">
-                    <i class="fas fa-times me-1"></i>Close
-                  </button>
-                  <button class="btn btn-primary btn-sm" @click.stop="editEntry(entry)">
-                    <i class="fas fa-edit me-1"></i>Edit
-                  </button>
+              <div class="diary-card-middle">
+                <h5>{{ entry.title }}</h5>
+                <div class="text-muted">
+                  <small>
+                    <i class="fas fa-map-marker-alt me-1"></i>{{ entry.location.name }}
+                    <span class="ms-2"><i class="fas fa-calendar me-1"></i>{{ formatDate(entry.created_at) }}</span>
+                  </small>
                 </div>
-                <p><i class="fas fa-map-marker-alt me-2"></i>{{ entry.location.name }}</p>
-                <p><i class="fas fa-calendar me-2"></i>Created: {{ formatDate(entry.created_at) }}</p>
-                <p><i class="fas fa-images me-2"></i>Images: {{ entry.images.length }}</p>
-                <div class="content-section">
-                  <h6><i class="fas fa-book me-2"></i>Content</h6>
-                  <p class="diary-content">{{ entry.content }}</p>
-                </div>
-                <div v-if="entry.images.length > 0" class="images-section">
-                  <h6><i class="fas fa-camera me-2"></i>Images</h6>
-                  <div class="diary-images">
-                    <div v-for="(image, imgIndex) in entry.images" 
-                         :key="imgIndex" 
-                         class="diary-image">
-                      <img :src="image" :alt="'Image ' + (imgIndex + 1)">
-                    </div>
-                  </div>
-                </div>
-                <div class="coordinates-section">
-                  <h6><i class="fas fa-location-arrow me-2"></i>Coordinates</h6>
-                  <p>Latitude: {{ entry.location.lat }}</p>
-                  <p>Longitude: {{ entry.location.lng }}</p>
-                </div>
+              </div>
+              <div class="diary-card-right">
+                <span class="country-flag">{{ getCountryFlag(entry.location.name) }}</span>
               </div>
             </div>
           </div>
@@ -224,8 +213,7 @@
 import { ref, onMounted, onUnmounted, nextTick, reactive } from 'vue'
 import api from '../utils/axios'
 import { loadGoogleMaps, cleanupGoogleMaps } from '../utils/mapLoader'
-import { Collapse } from 'bootstrap'
-import { Modal } from 'bootstrap'
+import { Collapse, Modal, Dropdown } from 'bootstrap'
 import DiaryEntryDisplay from './DiaryEntryDisplay.vue'
 
 export default {
@@ -245,6 +233,7 @@ export default {
     const error = ref(null)
     const geocoder = ref(null)
     const google = ref(null)
+    const isDropdownOpen = ref(false)
 
     let mapInitialized = false
 
@@ -426,7 +415,8 @@ export default {
         const marker = new google.value.maps.Marker({
           map: map.value,
           position,
-          title: entry.location.name,
+          title: entry.title,
+          animation: google.value.maps.Animation.DROP,
           icon: {
             path: google.value.maps.SymbolPath.CIRCLE,
             scale: 8,
@@ -437,14 +427,19 @@ export default {
           }
         });
 
-        // Create info window
+        // Create info window with enhanced content
         const infoWindow = new google.value.maps.InfoWindow({
           content: `
-            <div class="info-window">
-              <h5>${entry.title}</h5>
-              <div class="location-name">${entry.location.name}</div>
-              <div class="entry-preview">
-                ${entry.content.substring(0, 100)}...
+            <div class="info-window" style="padding: 10px; max-width: 300px;">
+              <h5 style="margin: 0 0 8px 0; color: #007bff;">${entry.title}</h5>
+              <div style="color: #666; margin-bottom: 8px;">
+                <i class="fas fa-map-marker-alt"></i> ${entry.location.name}
+              </div>
+              ${entry.images.length > 0 ? 
+                `<img src="${entry.images[0]}" alt="Location" style="width: 100%; height: 150px; object-fit: cover; border-radius: 4px; margin-bottom: 8px;">` 
+                : ''}
+              <div style="font-size: 0.9em; color: #333;">
+                ${entry.content.substring(0, 100)}${entry.content.length > 100 ? '...' : ''}
               </div>
             </div>
           `
@@ -452,11 +447,16 @@ export default {
 
         // Add click listener
         marker.addListener('click', () => {
+          // Close any open info window
           if (activeInfoWindow.value) {
             activeInfoWindow.value.close();
           }
+          
+          // Open this info window
           infoWindow.open(map.value, marker);
           activeInfoWindow.value = infoWindow;
+          
+          // Update selected entry
           selectedEntry.value = entry;
         });
 
@@ -666,45 +666,24 @@ export default {
     }
 
     const handleDiaryEntryClick = (entry) => {
-      selectedEntry.value = entry
-      // Center map on entry location before switching view
-      if (map.value && entry.location.lat && entry.location.lng) {
-        map.value.setCenter({
-          lat: entry.location.lat,
-          lng: entry.location.lng
-        })
-        map.value.setZoom(15)
-      }
+      selectedEntry.value = entry;
     }
 
     const closeSelectedEntry = () => {
       selectedEntry.value = null;
-      // Ensure the map is visible before updating its view
-      nextTick(async () => {
-        // Wait a bit for the transition to complete
-        await new Promise(resolve => setTimeout(resolve, 300));
-        if (map.value && markers.value.length > 0) {
-          const bounds = new google.value.maps.LatLngBounds();
-          markers.value.forEach(marker => {
-            bounds.extend(marker.position);
-          });
-          map.value.fitBounds(bounds);
-          map.value.setZoom(map.value.getZoom() - 0.5);
-        }
+      // After closing, show all locations on map
+      nextTick(() => {
+        viewAllLocations();
       });
-    };
+    }
 
     const closeEntry = (index) => {
-      const collapseEl = document.querySelector(`#collapse${index}`);
-      if (collapseEl) {
-        const collapse = Collapse.getInstance(collapseEl);
-        if (collapse) {
-          collapse.hide();
-          // Reset map to show all locations after closing entry
-          viewAllLocations();
-        }
+      const collapseElement = document.getElementById('collapse' + index);
+      const collapse = Collapse.getInstance(collapseElement);
+      if (collapse) {
+        collapse.hide();
       }
-    };
+    }
 
     const openEditor = () => {
       isEditing.value = false
@@ -769,12 +748,16 @@ export default {
     }
 
     const editEntry = (entry) => {
-      isEditing.value = true
-      newEntry.value = { ...entry }
-      new Modal(viewEntryModal.value).hide()
-      nextTick(() => {
-        new Modal(editorModal.value).show()
-      })
+      // Set up the entry for editing
+      newEntry.value = {
+        ...entry,
+        location: { ...entry.location }
+      };
+      isEditing.value = true;
+      
+      // Show the editor modal
+      const modal = new Modal(editorModal.value);
+      modal.show();
     }
 
     const saveDiaryEntry = async () => {
@@ -799,6 +782,70 @@ export default {
         alert('Failed to save diary entry. Please try again.')
       }
     }
+
+    const getCountryFlag = (location) => {
+      // Common cities and their country flags
+      const cityToFlag = {
+        // Thailand
+        'Bangkok': '🇹🇭',
+        'Phuket': '🇹🇭',
+        'Chiang Mai': '🇹🇭',
+        // Germany
+        'Berlin': '🇩🇪',
+        'Munich': '🇩🇪',
+        'Hamburg': '🇩🇪',
+        // Netherlands
+        'Amsterdam': '🇳🇱',
+        'Rotterdam': '🇳🇱',
+        'The Hague': '🇳🇱',
+        // Add more cities as needed
+      };
+
+      // Try to find an exact match
+      for (const [city, flag] of Object.entries(cityToFlag)) {
+        if (location.includes(city)) {
+          return flag;
+        }
+      }
+
+      // If no match found, try to guess based on common country names
+      const countryFlags = {
+        'Thailand': '🇹🇭',
+        'Germany': '🇩🇪',
+        'Netherlands': '🇳🇱',
+        'USA': '🇺🇸',
+        'UK': '🇬🇧',
+        'France': '🇫🇷',
+        'Spain': '🇪🇸',
+        'Italy': '🇮🇹',
+        'Japan': '🇯🇵',
+        'China': '🇨🇳',
+        // Add more countries as needed
+      };
+
+      for (const [country, flag] of Object.entries(countryFlags)) {
+        if (location.includes(country)) {
+          return flag;
+        }
+      }
+
+      // Default flag if no match found
+      return '🌍';
+    }
+
+    const toggleDropdown = () => {
+      isDropdownOpen.value = !isDropdownOpen.value
+    }
+
+    // Close dropdown when clicking outside
+    onMounted(() => {
+      document.addEventListener('click', (event) => {
+        const dropdown = document.querySelector('.dropdown')
+        if (dropdown && !dropdown.contains(event.target)) {
+          isDropdownOpen.value = false
+        }
+      })
+    })
 
     onMounted(async () => {
       try {
@@ -832,6 +879,12 @@ export default {
         keyboard: true,
         backdrop: true,
         focus: true
+      });
+
+      // Initialize dropdowns
+      const dropdownElementList = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+      dropdownElementList.forEach(dropdownToggleEl => {
+        new Dropdown(dropdownToggleEl);
       });
 
       // Add event listeners for modal focus management
@@ -887,7 +940,11 @@ export default {
       closeEditor,
       viewEntry,
       editEntry,
-      saveDiaryEntry
+      saveDiaryEntry,
+      closeEntry,
+      getCountryFlag,
+      isDropdownOpen,
+      toggleDropdown,
     }
   }
 }
@@ -895,42 +952,33 @@ export default {
 
 <style scoped>
 .travel-diary-container {
-  display: grid;
-  grid-template-columns: 200px minmax(600px, 1fr) 250px;
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
   height: 100vh;
-  padding: 1rem;
   background: #f8f9fa;
 }
 
-.diary-form {
-  background: white;
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  overflow-y: auto;
-  height: calc(100vh - 2rem);
-  display: flex;
-  flex-direction: column;
+.navbar {
+  padding: 0.5rem 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.main-content {
+  display: grid;
+  grid-template-columns: minmax(600px, 1fr) 300px;
   gap: 1rem;
+  padding: 1rem;
+  height: calc(100vh - 56px); /* Subtract navbar height */
+  overflow: hidden;
 }
 
 .map-wrapper {
   position: relative;
-  height: calc(100vh - 2rem);
+  height: 100%;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   background: white;
-}
-
-.map-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: #fff;
 }
 
 .diary-list {
@@ -939,7 +987,71 @@ export default {
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   overflow-y: auto;
-  height: calc(100vh - 2rem);
+  height: 100%;
+}
+
+.diary-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.diary-card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.diary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.diary-card-content {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  gap: 0.75rem;
+}
+
+.preview-image {
+  width: 45px;
+  height: 45px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diary-card-middle {
+  flex-grow: 1;
+  min-width: 0;
+  padding-right: 0.5rem;
+}
+
+.diary-card-middle h5 {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.diary-card-middle .text-muted {
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .map-overlay {
@@ -1025,9 +1137,9 @@ export default {
 }
 
 .entry-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 4px;
 }
 
 .entry-details p {
@@ -1059,80 +1171,76 @@ export default {
   white-space: pre-wrap;
 }
 
-.diary-card {
-  cursor: pointer;
-  transition: transform 0.2s ease;
+.country-flag {
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
-.diary-card:hover {
-  transform: translateY(-2px);
-}
-
-.accordion-button {
-  transition: all 0.2s ease;
-}
-
-.accordion-button:not(.collapsed) {
-  background-color: #e7f1ff;
-  color: #0d6efd;
-}
-
-.accordion-button:hover {
-  background-color: #f8f9fa;
-}
-
-.me-2 {
-  margin-right: 0.5rem;
-}
-
-.diary-images {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 1rem;
-  margin: 0.5rem 0;
-}
-
-.diary-image {
-  position: relative;
-  padding-bottom: 100%;
+.btn-outline-primary {
+  padding: 0.375rem;
+  line-height: 1;
   border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.diary-image img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.2s ease;
-}
-
-.diary-image:hover img {
+.btn-outline-primary:hover {
   transform: scale(1.05);
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
+.dropdown {
+  position: relative;
+  display: inline-block;
 }
 
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 1000;
+  min-width: 10rem;
+  padding: 0.5rem 0;
+  margin: 0;
+  font-size: 1rem;
+  color: #212529;
+  text-align: left;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid rgba(0,0,0,.15);
+  border-radius: 0.25rem;
+  box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15);
 }
 
-.marker-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.dropdown-menu.show {
+  display: block;
 }
 
-.marker-pin {
-  color: #007bff;
-  font-size: 24px;
-  filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.3));
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 0.25rem 1.5rem;
+  clear: both;
+  font-weight: 400;
+  color: #212529;
+  text-align: inherit;
+  white-space: nowrap;
+  background-color: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  color: #1e2125;
+  background-color: #f8f9fa;
+}
+
+.dropdown-toggle {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  color: #212529;
+}
+
+.dropdown-toggle:hover {
+  color: #0d6efd;
 }
 </style> 
