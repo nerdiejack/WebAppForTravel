@@ -29,36 +29,36 @@
     <!-- Main Content -->
     <div class="main-content">
       <div class="map-wrapper">
-        <transition name="fade" mode="out-in">
-          <div v-if="!selectedEntry" class="map-container" ref="mapContainer">
-            <!-- Loading overlay -->
-            <div v-if="loading" class="map-overlay">
-              <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
+        <div class="map-container" ref="mapContainer">
+          <!-- Loading overlay -->
+          <div v-if="loading" class="map-overlay">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
             </div>
-
-            <!-- Error overlay -->
-            <div v-if="error" class="map-overlay error">
-              <div class="alert alert-danger" role="alert">
-                {{ error }}
-                <button @click="retryLoading" class="btn btn-outline-danger btn-sm ms-2">
-                  Retry
-                </button>
-              </div>
-            </div>
-
-            <button v-if="!loading && !error" @click="viewAllLocations" class="view-all-btn">
-              <i class="fas fa-globe-americas me-2"></i>View All Locations
-            </button>
           </div>
-          <diary-entry-display
-            v-else
-            :entry="selectedEntry"
-            @back-to-map="closeSelectedEntry"
-            @edit="editEntry"
-          />
-        </transition>
+
+          <!-- Error overlay -->
+          <div v-if="error" class="map-overlay error">
+            <div class="alert alert-danger" role="alert">
+              {{ error }}
+              <button @click="retryLoading" class="btn btn-outline-danger btn-sm ms-2">
+                Retry
+              </button>
+            </div>
+          </div>
+
+          <div ref="mapElement" style="width: 100%; height: 100%;"></div>
+          <button v-if="!loading && !error" @click="viewAllLocations" class="view-all-btn">
+            <i class="fas fa-globe-americas me-2"></i>View All Locations
+          </button>
+        </div>
+        <diary-entry-display
+          v-if="selectedEntry"
+          :entry="selectedEntry"
+          @back-to-map="closeSelectedEntry"
+          @edit="editEntry"
+          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; background: white;"
+        />
       </div>
 
       <div class="diary-list">
@@ -223,6 +223,7 @@ export default {
   },
   setup() {
     const mapContainer = ref(null)
+    const mapElement = ref(null)
     const entries = ref([])
     const map = ref(null)
     const markers = ref([])
@@ -254,7 +255,8 @@ export default {
 
     const initMap = async () => {
       try {
-        if (!mapContainer.value) {
+        if (!mapContainer.value || !mapElement.value) {
+          console.error('Map container or element ref is null');
           throw new Error('Map container not found');
         }
 
@@ -264,13 +266,8 @@ export default {
         // Load Google Maps API first
         google.value = await loadGoogleMaps();
         
-        // Create map instance
-        const mapElement = document.createElement('div');
-        mapElement.style.width = '100%';
-        mapElement.style.height = '100%';
-        mapContainer.value.appendChild(mapElement);
-
-        map.value = new google.value.maps.Map(mapElement, {
+        // Create the map instance directly on the mapElement
+        map.value = new google.value.maps.Map(mapElement.value, {
           center: { lat: 13.7563, lng: 100.5018 },
           zoom: 6,
           mapTypeControl: true,
@@ -280,72 +277,25 @@ export default {
           gestureHandling: 'greedy'
         });
 
+        // Wait for the map to be fully loaded
+        await new Promise((resolve) => {
+          google.value.maps.event.addListenerOnce(map.value, 'idle', () => {
+            console.log('Map fully loaded');
+            resolve();
+          });
+        });
+
         geocoder.value = new google.value.maps.Geocoder();
-
-        if (!geocoder.value) {
-          throw new Error('Failed to initialize geocoder');
-        }
-        
-        // Create markers for existing entries
-        markers.value = entries.value.map(entry => {
-          if (entry.location.lat && entry.location.lng) {
-            const position = {
-              lat: entry.location.lat,
-              lng: entry.location.lng
-            };
-
-            const marker = new google.value.maps.Marker({
-              map: map.value,
-              position,
-              title: entry.location.name,
-              icon: {
-                path: google.value.maps.SymbolPath.CIRCLE,
-                scale: 8,
-                fillColor: '#007bff',
-                fillOpacity: 1,
-                strokeColor: '#ffffff',
-                strokeWeight: 2
-              }
-            });
-
-            // Create info window
-            const infoWindow = new google.value.maps.InfoWindow({
-              content: `
-                <div class="info-window">
-                  <h5>${entry.title}</h5>
-                  <div class="location-name">${entry.location.name}</div>
-                  <div class="entry-preview">
-                    ${entry.content.substring(0, 100)}...
-                  </div>
-                </div>
-              `
-            });
-
-            // Add click listener
-            marker.addListener('click', () => {
-              if (activeInfoWindow.value) {
-                activeInfoWindow.value.close();
-              }
-              infoWindow.open(map.value, marker);
-              activeInfoWindow.value = infoWindow;
-              selectedEntry.value = entry;
-            });
-
-            return marker;
-          }
-          return null;
-        }).filter(marker => marker !== null);
-
-        // Show all markers
-        if (markers.value.length > 0) {
-          viewAllLocations();
-        }
-
-        console.log('Map and geocoder initialized successfully');
+        console.log('Map initialized successfully');
         mapInitialized = true;
+
+        // Create markers for existing entries
+        await displayEntriesOnMap();
+
       } catch (err) {
         console.error('Error initializing map:', err);
         error.value = 'Failed to initialize map. Please try again.';
+        mapInitialized = false;
       } finally {
         loading.value = false;
       }
@@ -369,42 +319,47 @@ export default {
     }
 
     const displayEntriesOnMap = async () => {
+      console.log('displayEntriesOnMap called');
       if (!map.value || !google.value) {
-        console.warn('Map not initialized yet')
-        return
+        console.error('Map not initialized yet - map:', !!map.value, 'google:', !!google.value);
+        return;
       }
 
       try {
+        console.log('Clearing existing markers');
         // Clear existing markers
-        markers.value.forEach(marker => marker.setMap(null))
-        markers.value = []
+        markers.value.forEach(marker => marker.setMap(null));
+        markers.value = [];
 
         if (!entries.value || entries.value.length === 0) {
-          return
+          console.log('No entries to display');
+          return;
         }
 
-        const bounds = new google.value.maps.LatLngBounds()
+        console.log('Creating bounds and markers for', entries.value.length, 'entries');
+        const bounds = new google.value.maps.LatLngBounds();
         
         for (const entry of entries.value) {
           const position = {
             lat: entry.location.lat,
             lng: entry.location.lng
-          }
+          };
 
-          bounds.extend(position)
-          const marker = await createMarker(entry, position)
+          bounds.extend(position);
+          const marker = await createMarker(entry, position);
           if (marker) {
-            markers.value.push(marker)
+            markers.value.push(marker);
           }
         }
 
-        map.value.fitBounds(bounds)
+        console.log('Fitting bounds to map with', markers.value.length, 'markers');
+        map.value.fitBounds(bounds);
         if (markers.value.length === 1) {
-          map.value.setZoom(15)
+          map.value.setZoom(15);
         }
       } catch (error) {
-        console.error('Error displaying entries on map:', error)
-        error.value = 'Failed to display entries on map. Please try again later.'
+        console.error('Error displaying entries on map:', error);
+        error.value = 'Failed to display entries on map. Please try again later.';
       }
     }
 
@@ -416,15 +371,7 @@ export default {
           map: map.value,
           position,
           title: entry.title,
-          animation: google.value.maps.Animation.DROP,
-          icon: {
-            path: google.value.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: '#007bff',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2
-          }
+          animation: google.value.maps.Animation.DROP
         });
 
         // Create info window with enhanced content
@@ -619,42 +566,45 @@ export default {
     }
 
     const cleanup = () => {
+      console.log('Running cleanup');
       if (markers.value) {
         markers.value.forEach(marker => {
-          if (marker) marker.setMap(null)
-        })
-        markers.value = []
+          if (marker) marker.setMap(null);
+        });
+        markers.value = [];
       }
 
       if (activeInfoWindow.value) {
-        activeInfoWindow.value.close()
-        activeInfoWindow.value = null
+        activeInfoWindow.value.close();
+        activeInfoWindow.value = null;
       }
 
       if (map.value) {
-        google.value?.maps.event.clearInstanceListeners(map.value)
-        map.value = null
+        google.value?.maps.event.clearInstanceListeners(map.value);
       }
 
-      if (geocoder.value) {
-        geocoder.value = null
-      }
-
-      if (google.value) {
-        google.value = null
-      }
-
-      if (mapContainer.value) {
-        mapContainer.value.innerHTML = ''
-      }
-
-      mapInitialized = false
-      cleanupGoogleMaps()
+      mapInitialized = false;
     }
 
-    const viewAllLocations = () => {
-      if (!map.value || !markers.value.length) return;
+    const viewAllLocations = async () => {
+      console.log('viewAllLocations called');
+      console.log('map value:', map.value);
+      console.log('markers length:', markers.value?.length);
+      console.log('mapInitialized:', mapInitialized);
 
+      if (!map.value || !markers.value.length) {
+        console.log('Map or markers not ready, initializing map...');
+        if (!mapInitialized) {
+          await initMap();
+        }
+      }
+
+      if (!map.value || !markers.value.length) {
+        console.log('Still no map or markers, returning');
+        return;
+      }
+
+      console.log('Creating bounds and fitting map');
       const bounds = new google.value.maps.LatLngBounds();
       markers.value.forEach(marker => {
         bounds.extend(marker.getPosition());
@@ -665,16 +615,84 @@ export default {
       map.value.setZoom(map.value.getZoom() - 0.5);
     }
 
-    const handleDiaryEntryClick = (entry) => {
-      selectedEntry.value = entry;
+    const handleDiaryEntryClick = async (entry) => {
+      console.log('Opening diary entry:', entry.title);
+      
+      try {
+        // Cleanup map resources before showing entry
+        if (map.value) {
+          // Clear all markers
+          if (markers.value) {
+            markers.value.forEach(marker => {
+              if (marker) {
+                google.value.maps.event.clearInstanceListeners(marker);
+                marker.setMap(null);
+              }
+            });
+            markers.value = [];
+          }
+
+          // Clear map listeners
+          google.value?.maps.event.clearInstanceListeners(map.value);
+          
+          // Close any open info windows
+          if (activeInfoWindow.value) {
+            activeInfoWindow.value.close();
+            activeInfoWindow.value = null;
+          }
+
+          // Hide map container to free up resources
+          if (mapContainer.value) {
+            mapContainer.value.style.visibility = 'hidden';
+          }
+        }
+
+        // Set selected entry after cleanup
+        selectedEntry.value = entry;
+
+      } catch (error) {
+        console.error('Error in handleDiaryEntryClick:', error);
+      }
     }
 
-    const closeSelectedEntry = () => {
+    const closeSelectedEntry = async () => {
+      console.log('Closing selected entry');
       selectedEntry.value = null;
-      // After closing, show all locations on map
-      nextTick(() => {
-        viewAllLocations();
-      });
+      
+      try {
+        // Wait for the view to update
+        await nextTick();
+        
+        // Check if map container exists
+        if (!mapContainer.value || !mapElement.value) {
+          console.error('Map container or element not found');
+          return;
+        }
+
+        // Make map container visible again
+        if (mapContainer.value) {
+          mapContainer.value.style.visibility = 'visible';
+        }
+
+        // If map is not initialized or was cleaned up, initialize it
+        if (!mapInitialized || !map.value) {
+          console.log('Map not initialized, calling initMap');
+          await initMap();
+        } else {
+          console.log('Map exists, restoring view');
+          
+          // Force a resize event to ensure map renders correctly
+          if (map.value && google.value) {
+            google.value.maps.event.trigger(map.value, 'resize');
+          }
+
+          // Display all entries on map
+          await displayEntriesOnMap();
+        }
+
+      } catch (error) {
+        console.error('Error in closeSelectedEntry:', error);
+      }
     }
 
     const closeEntry = (index) => {
@@ -849,13 +867,15 @@ export default {
 
     onMounted(async () => {
       try {
-        await initMap()
-        await loadEntries()
+        console.log('Component mounted, initializing...');
+        await loadEntries(); // Load entries first
+        await nextTick(); // Wait for DOM update
+        await initMap(); // Then initialize map
       } catch (err) {
-        console.error('Error during component mount:', err)
-        error.value = 'Failed to initialize the application. Please refresh the page.'
+        console.error('Error during component mount:', err);
+        error.value = 'Failed to initialize the application. Please refresh the page.';
       }
-    })
+    });
 
     onUnmounted(() => {
       cleanup()
@@ -919,6 +939,7 @@ export default {
 
     return {
       mapContainer,
+      mapElement,
       entries,
       newEntry,
       addDiaryEntry,
@@ -979,6 +1000,20 @@ export default {
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   background: white;
+}
+
+.map-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
 }
 
 .diary-list {
@@ -1115,19 +1150,18 @@ export default {
 
 .view-all-btn {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
   background: white;
   color: #007bff;
   border: 1px solid #007bff;
-  padding: 10px 20px;
+  padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  z-index: 1000;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   transition: all 0.2s ease;
 }
 

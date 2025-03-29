@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   backend:
     build: ./backend
@@ -10,8 +12,6 @@ services:
       - MONGO_URI=mongodb://db:27017/travel_db
     volumes:
       - ./backend:/app
-      - uploads_data:/app/uploads
-    restart: always
     networks:
       - app_network
 
@@ -19,6 +19,11 @@ services:
     build: ./frontend
     ports:
       - "80:80"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VUE_APP_API_URL=http://localhost:8000
     depends_on:
       - backend
     networks:
@@ -32,6 +37,20 @@ services:
     volumes:
       - mongo_data:/data/db
     restart: always
+    networks:
+      - app_network
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo_express
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=db
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_BASICAUTH=false
+    depends_on:
+      - db
     networks:
       - app_network
 
