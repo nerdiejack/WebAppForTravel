@@ -1,40 +1,58 @@
-# Travel Diary Web Application
+# Travel Web Application
 
-A modern web application for documenting your travel experiences with an interactive map interface. This application allows users to create, view, and manage travel diary entries with location-based features and image support.
+A comprehensive travel planning and hotel reservation system built with Vue.js, FastAPI, and MongoDB. This full-stack application provides an interactive mapping experience for travel planning, hotel bookings, and administrative management.
 
 ## Features
 
 ### Core Functionality
 
-- **Interactive Map Interface**
+- **Hotel Reservation System**
 
-  - Google Maps integration for visual location tracking
-  - Custom markers for each diary entry
-  - Info windows with entry previews
-  - "View All Locations" feature to see all entries on the map
-  - Location picking functionality for new entries
+  - Complete CRUD operations for hotel bookings
+  - Real-time search and filtering
+  - Date-based availability management
+  - Status tracking (confirmed, cancelled, completed)
+  - Special requests handling
+  - Price calculation and management
 
-- **Diary Entry Management**
+- **Travel Planning System**
 
-  - Create new travel diary entries
-  - Edit existing entries
-  - View detailed entry information
-  - Delete entries
-  - Rich text content support
+  - Multi-modal transport search
+    - Driving directions with real-time traffic
+    - Public transit routes
+    - Flight options via Skyscanner
+  - Real-time route information
+    - Duration and distance
+    - Price estimates
+    - Traffic conditions
+  - Interactive route visualization
+    - Detailed turn-by-turn directions
+    - Route alternatives
+    - Waypoints support
+  - Price comparison across different transport modes
+  - Location autocomplete
+  - Current location detection
+  - Booking integration with transport providers
 
-- **Location Features**
+- **Travel Diary System**
 
-  - Automatic location detection
-  - Manual location selection via map
-  - City and country flag display
-  - Geocoding support for location names
-
-- **Image Management**
+  - Interactive map interface for entry locations
+  - Create, edit, and manage travel diary entries
   - Multiple image upload support
-  - Image preview functionality
-  - Automatic image compression for large files
-  - Support for JPEG, PNG, and GIF formats
-  - Maximum file size limit of 25MB
+  - Location-based entry organization
+  - Country flag indicators
+  - Rich text content support
+  - Preview images for entries
+
+- **Admin Dashboard**
+  - Comprehensive reservation management
+  - Quick search and filtering
+  - Bulk operations support
+  - Status updates
+  - Detailed booking information
+  - Responsive table view
+  - Hotel coordinate management
+  - Map location verification
 
 ### User Interface
 
@@ -44,37 +62,50 @@ A modern web application for documenting your travel experiences with an interac
   - Responsive design for all screen sizes
   - Smooth transitions and animations
   - Bootstrap-based components
+  - Dynamic map type switching (Road, Satellite, Terrain)
 
 - **Navigation**
 
   - Top navigation bar with options menu
   - Dropdown menu for quick actions
-  - Modal-based entry editor
+  - Modal-based forms and editors
   - Easy access to map controls
+  - Intuitive booking flow
 
-- **Diary Cards**
-  - Compact and informative design
-  - Preview image support
-  - Location and date information
-  - Country flag indicators
-  - Hover effects for better interaction
+- **Interactive Maps**
+  - Google Maps integration
+  - Custom markers for hotels and diary entries
+  - Info windows with previews
+  - Location picking functionality
+  - Route visualization
+  - Real-time traffic updates
+  - Multi-layer support
 
 ## Technical Stack
 
 ### Frontend
 
 - **Framework**: Vue.js 3
+- **Build Tool**: Vite
 - **UI Library**: Bootstrap 5
 - **Maps**: Google Maps JavaScript API
+  - Maps
+  - Places
+  - Distance Matrix
+  - Directions
+- **Travel APIs**:
+  - Skyscanner API (for flights)
+  - Google Maps Distance Matrix (for driving and transit)
 - **HTTP Client**: Axios
-- **Styling**: CSS3 with SCSS support
+- **Server**: Nginx
 
 ### Backend
 
-- **Runtime**: Node.js
-- **Framework**: Express.js
+- **Framework**: FastAPI
 - **Database**: MongoDB
-- **File Storage**: Local storage (configurable for cloud storage)
+- **Async Driver**: Motor
+- **Data Validation**: Pydantic
+- **Container**: Docker
 
 ## Environment Setup
 
@@ -83,11 +114,11 @@ A modern web application for documenting your travel experiences with an interac
 ```env
 # Frontend
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+VITE_SKYSCANNER_API_KEY=your_skyscanner_api_key
 VITE_API_BASE_URL=http://localhost:3000
 
 # Backend
-PORT=3000
-MONGODB_URI=your_mongodb_connection_string
+MONGODB_URL=your_mongodb_url
 ```
 
 ### Installation
@@ -96,44 +127,66 @@ MONGODB_URI=your_mongodb_connection_string
 
 ```bash
 git clone [repository-url]
-cd travel-diary-app
+cd WebAppForTravel
 ```
 
-2. Install dependencies:
+2. Install frontend dependencies:
 
 ```bash
-# Install frontend dependencies
 cd frontend
-npm install
-
-# Install backend dependencies
-cd ../backend
 npm install
 ```
 
-3. Set up environment variables:
+3. Install backend dependencies:
+
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+4. Set up environment variables:
+
+```bash
+# Frontend (.env)
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+VITE_SKYSCANNER_API_KEY=your_skyscanner_api_key
+
+# Backend (.env)
+MONGODB_URL=your_mongodb_url
+```
+
+5. For development:
 
 ```bash
 # Frontend
-cp frontend/.env.example frontend/.env
+npm run dev
 
 # Backend
-cp backend/.env.example backend/.env
+uvicorn main:app --reload
 ```
 
-4. Start the development servers:
+6. For production with Docker:
 
 ```bash
-# Start backend server
-cd backend
-npm run dev
-
-# Start frontend server (in a new terminal)
-cd frontend
-npm run dev
+docker-compose up --build
 ```
 
 ## API Endpoints
+
+### Hotels
+
+- `GET /api/hotels` - List all reservations
+- `GET /api/hotels/{city}` - Get hotels by city
+- `POST /api/hotels` - Create reservation
+- `PUT /api/hotels/{id}` - Update reservation
+- `DELETE /api/hotels/{id}` - Delete reservation
+
+### Travel Planning
+
+- `GET /api/routes` - Get route information
+- `POST /api/routes/calculate` - Calculate route between points
+- `GET /api/flights` - Search for flights
+- `GET /api/transit` - Get public transit options
 
 ### Diary Entries
 
@@ -141,33 +194,47 @@ npm run dev
 - `POST /api/diary/entries` - Create a new diary entry
 - `PUT /api/diary/entries/:id` - Update an existing entry
 - `DELETE /api/diary/entries/:id` - Delete an entry
-
-### Image Upload
-
 - `POST /api/diary/upload-image` - Upload images for diary entries
 
 ## Project Structure
 
 ```
-travel-diary-app/
+WebAppForTravel/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── TravelDiary.vue
-│   │   │   └── DiaryEntryDisplay.vue
+│   │   │   ├── Map.vue              # Map component
+│   │   │   ├── HotelMap.vue         # Hotel reservation map
+│   │   │   ├── TravelDiary.vue      # Diary component
+│   │   │   ├── DiaryEntryDisplay.vue # Diary entry display
+│   │   │   └── AdminDashboard.vue   # Admin interface
 │   │   ├── utils/
-│   │   │   ├── axios.js
-│   │   │   └── mapLoader.js
-│   │   └── App.vue
-│   └── package.json
+│   │   │   ├── axios.js             # API client configuration
+│   │   │   └── mapLoader.js         # Google Maps loader
+│   │   ├── App.vue                  # Root component
+│   │   └── main.js                  # Application entry
+│   ├── nginx.conf                   # Nginx configuration
+│   └── Dockerfile                   # Frontend container
 ├── backend/
-│   ├── src/
-│   │   ├── routes/
-│   │   ├── models/
-│   │   └── controllers/
-│   └── package.json
-└── README.md
+│   ├── routes/
+│   │   ├── hotels.py                # Hotel endpoints
+│   │   ├── maps.py                  # Map endpoints
+│   │   └── diary.py                 # Diary endpoints
+│   ├── models.py                    # Data models
+│   ├── database.py                  # Database configuration
+│   ├── main.py                      # FastAPI application
+│   └── requirements.txt             # Python dependencies
+└── docker-compose.yml               # Container orchestration
 ```
+
+## Security
+
+- Content Security Policy (CSP) headers
+- CORS configuration
+- MongoDB security best practices
+- Input validation
+- Error handling
+- API rate limiting
 
 ## Contributing
 
@@ -184,6 +251,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Google Maps Platform for the mapping functionality
+- Skyscanner for flight search capabilities
 - Bootstrap team for the UI components
 - Vue.js team for the frontend framework
+- FastAPI team for the backend framework
 - MongoDB team for the database solution
+- Docker community for containerization support
