@@ -122,107 +122,123 @@
           </div>
           <div class="modal-body">
             <form @submit.prevent="saveDiaryEntry">
-              <div class="mb-3">
-                <label for="title" class="form-label">Title</label>
+              <!-- Title Section -->
+              <div class="form-floating mb-3">
                 <input 
                   id="title"
                   v-model="newEntry.title" 
-                  class="form-control" 
+                  class="form-control form-control-lg" 
                   placeholder="Enter your title..."
                   required
                 >
+                <label for="title">Title</label>
               </div>
               
-              <div class="mb-3">
-                <label for="content" class="form-label">Content</label>
-                <textarea 
-                  id="content"
-                  v-model="newEntry.content" 
-                  class="form-control" 
-                  placeholder="Write your story..."
-                  rows="8"
-                  required
-                ></textarea>
-              </div>
+              <div class="entry-grid">
+                <!-- Main Content Column -->
+                <div class="entry-main">
+                  <!-- Content Section -->
+                  <div class="form-floating mb-3">
+                    <textarea 
+                      id="content"
+                      v-model="newEntry.content" 
+                      class="form-control content-area" 
+                      placeholder="Write your story..."
+                      required
+                    ></textarea>
+                    <label for="content">Write your story...</label>
+                  </div>
 
-              <div class="row mb-3">
-                <div class="col-12 mb-2">
-                  <label class="form-label">Location</label>
-                </div>
-                <div class="col-12 mb-2">
-                  <input 
-                    v-model="newEntry.location.name" 
-                    class="form-control" 
-                    placeholder="Location name"
-                    required
-                  >
-                </div>
-                <div class="col-md-6">
-                  <input 
-                    v-model.number="newEntry.location.lat" 
-                    type="number" 
-                    class="form-control" 
-                    placeholder="Latitude"
-                    step="any"
-                    required
-                  >
-                </div>
-                <div class="col-md-6">
-                  <input 
-                    v-model.number="newEntry.location.lng" 
-                    type="number" 
-                    class="form-control" 
-                    placeholder="Longitude"
-                    step="any"
-                    required
-                  >
-                </div>
-                <div class="col-12 mt-2">
-                  <button type="button" @click="pickLocationOnMap" class="btn btn-outline-primary w-100">
-                    <i class="fas fa-map-pin me-2"></i>Pick on Map
-                  </button>
-                </div>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label">Images</label>
-                <input 
-                  type="file" 
-                  @change="handleImageUpload" 
-                  accept="image/*" 
-                  multiple 
-                  class="form-control mb-2"
-                  ref="imageInput"
-                  :disabled="uploadLoading || loading"
-                >
-                <div v-if="uploadStatus" class="upload-status alert alert-info">
-                  <div class="d-flex align-items-center">
-                    <div class="spinner-border spinner-border-sm me-2" role="status">
-                      <span class="visually-hidden">Loading...</span>
+                  <!-- Images Section -->
+                  <div class="images-section">
+                    <label class="form-label d-block mb-2">Images</label>
+                    <div class="image-preview-grid">
+                      <div v-for="(image, index) in imagePreviewUrls" 
+                           :key="index" 
+                           class="image-preview-item">
+                        <div class="image-number">{{ index + 1 }}</div>
+                        <img :src="image.thumbnail" 
+                             :alt="'Preview ' + (index + 1)" 
+                             class="preview-image"
+                             @click="openImagePreview(image.original)">
+                        <button type="button" @click="removeImage(index)" class="btn btn-danger btn-sm remove-image">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                      <!-- Add Image Upload Box -->
+                      <div class="image-upload-box" @click="triggerImageUpload">
+                        <input 
+                          type="file" 
+                          @change="handleImageUpload" 
+                          accept="image/*" 
+                          multiple 
+                          class="d-none"
+                          ref="imageInput"
+                          :disabled="uploadLoading || loading"
+                        >
+                        <div class="upload-content">
+                          <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                          <p class="mb-0">Add Image</p>
+                        </div>
+                      </div>
                     </div>
-                    <span>{{ uploadStatus }}</span>
+                    <div v-if="uploadStatus" class="upload-status alert alert-info mt-3">
+                      <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                          <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span>{{ uploadStatus }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div class="image-preview-grid">
-                  <div v-for="(image, index) in imagePreviewUrls" 
-                       :key="index" 
-                       class="image-preview-item">
-                    <div class="image-number">{{ index + 1 }}</div>
-                    <img :src="image.thumbnail" 
-                         :alt="'Preview ' + (index + 1)" 
-                         class="preview-image"
-                         @click="openImagePreview(image.original)">
-                    <button type="button" @click="removeImage(index)" class="btn btn-danger btn-sm remove-image">
-                      <i class="fas fa-times"></i>
-                    </button>
+
+                <!-- Sidebar -->
+                <div class="entry-sidebar">
+                  <div class="location-card">
+                    <h6 class="location-card-title">Location Details</h6>
+                    <div class="form-floating mb-3">
+                      <input 
+                        v-model="newEntry.location.name" 
+                        class="form-control" 
+                        id="locationName"
+                        placeholder="Location name"
+                        required
+                      >
+                      <label for="locationName">Location name</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                      <input 
+                        v-model.number="newEntry.location.lat" 
+                        type="number" 
+                        class="form-control" 
+                        id="latitude"
+                        placeholder="Latitude"
+                        step="any"
+                        required
+                      >
+                      <label for="latitude">Latitude</label>
+                    </div>
+                    <div class="form-floating">
+                      <input 
+                        v-model.number="newEntry.location.lng" 
+                        type="number" 
+                        class="form-control" 
+                        id="longitude"
+                        placeholder="Longitude"
+                        step="any"
+                        required
+                      >
+                      <label for="longitude">Longitude</label>
+                    </div>
                   </div>
                 </div>
               </div>
             </form>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeEditor" :disabled="loading || uploadLoading">Cancel</button>
-            <button type="button" class="btn btn-primary" @click="saveDiaryEntry" :disabled="loading || uploadLoading">
+            <button type="button" class="btn btn-light" @click="closeEditor" :disabled="loading || uploadLoading">Cancel</button>
+            <button type="submit" class="btn btn-primary" @click="saveDiaryEntry" :disabled="loading || uploadLoading">
               <span v-if="loading || uploadLoading" class="spinner-border spinner-border-sm me-2" role="status">
                 <span class="visually-hidden">Loading...</span>
               </span>
@@ -639,22 +655,37 @@ export default {
       imagePreviewUrls.value.splice(index, 1);
     }
 
-    const pickLocationOnMap = () => {
+    const pickLocationOnMap = async () => {
       if (!map.value || !google.value) {
         console.warn('Map not initialized yet')
         return
       }
 
-      isPickingLocation.value = true
-      alert('Click on the map to set the location')
+      // If we're in entry view mode, close it first
+      if (selectedEntry.value) {
+        await closeSelectedEntry();
+      }
+
+      // Make sure map is visible
+      if (mapContainer.value) {
+        mapContainer.value.style.visibility = 'visible';
+      }
+
+      // If map needs to be reinitialized
+      if (!mapInitialized) {
+        await initMap();
+      }
+
+      isPickingLocation.value = true;
+      alert('Click on the map to set the location');
 
       const clickListener = map.value.addListener('click', (event) => {
-        newEntry.value.location.lat = event.latLng.lat()
-        newEntry.value.location.lng = event.latLng.lng()
-        isPickingLocation.value = false
-        google.value.maps.event.removeListener(clickListener)
-        alert('Location set!')
-      })
+        newEntry.value.location.lat = event.latLng.lat();
+        newEntry.value.location.lng = event.latLng.lng();
+        isPickingLocation.value = false;
+        google.value.maps.event.removeListener(clickListener);
+        alert('Location set!');
+      });
     }
 
     const formatDate = (date) => {
@@ -815,6 +846,13 @@ export default {
         },
         images: []
       }
+      // Reset image-related state
+      imagePreviewUrls.value = []
+      imageFiles.value = []
+      uploadStatus.value = ''
+      if (imageInput.value) {
+        imageInput.value.value = ''
+      }
       new Modal(editorModal.value).show()
     }
 
@@ -837,6 +875,13 @@ export default {
           },
           images: []
         };
+        // Reset image-related state
+        imagePreviewUrls.value = []
+        imageFiles.value = []
+        uploadStatus.value = ''
+        if (imageInput.value) {
+          imageInput.value.value = ''
+        }
       }, { once: true });
     }
 
@@ -1042,6 +1087,12 @@ export default {
       new Modal(imagePreviewModal.value).show();
     };
 
+    const triggerImageUpload = () => {
+      if (imageInput.value) {
+        imageInput.value.click();
+      }
+    };
+
     onMounted(async () => {
       try {
         console.log('Component mounted, initializing...');
@@ -1154,6 +1205,7 @@ export default {
       uploadStatus,
       selectedImage,
       openImagePreview,
+      triggerImageUpload,
     }
   }
 }
@@ -1241,14 +1293,10 @@ export default {
 }
 
 .diary-card-left {
-  width: 45px;
-  height: 45px;
-  border-radius: 4px;
-  overflow: hidden;
-  background: #f8f9fa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  margin-right: 1rem;
 }
 
 .diary-card-middle {
@@ -1486,9 +1534,9 @@ export default {
   aspect-ratio: 1;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #dee2e6;
   cursor: pointer;
   transition: transform 0.2s ease;
+  border: 1px solid #dee2e6;
 }
 
 .image-preview-item:hover {
@@ -1501,36 +1549,51 @@ export default {
   object-fit: cover;
 }
 
-.remove-image {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 50%;
-  background-color: rgba(220, 53, 69, 0.9);
-  border: none;
-  color: white;
-}
-
-.remove-image:hover {
-  background-color: #dc3545;
-}
-
-.form-label {
-  font-weight: 500;
-  color: #495057;
-}
-
 .image-number {
   position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  background-color: rgba(0, 0, 0, 0.7);
+  top: 8px;
+  left: 8px;
+  background-color: rgba(0, 0, 0, 0.6);
   color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  z-index: 1;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.remove-image {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.8rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.image-preview-item:hover .remove-image {
+  opacity: 1;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+}
+
+.preview-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-image.no-image {
+  color: #adb5bd;
+  font-size: 1.5rem;
 }
 
 .upload-status {
@@ -1555,10 +1618,197 @@ export default {
 
 #imagePreviewModal .modal-body {
   background-color: #000;
+  max-height: 80vh;
+  overflow: auto;
 }
 
 #imagePreviewModal .img-fluid {
-  max-height: 80vh;
+  max-height: 70vh;
   width: auto;
+  margin: 0 auto;
+}
+
+.image-upload-box {
+  position: relative;
+  aspect-ratio: 1;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+}
+
+.image-upload-box:hover {
+  border-color: #007bff;
+  background-color: #f1f8ff;
+}
+
+.upload-content {
+  text-align: center;
+  color: #6c757d;
+}
+
+.upload-content i {
+  color: #007bff;
+}
+
+.upload-content p {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.image-upload-box:hover .upload-content {
+  color: #007bff;
+}
+
+.image-upload-box:hover .upload-content p {
+  color: #007bff;
+}
+
+.form-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.content-section {
+  flex: 1;
+}
+
+.content-section textarea {
+  height: 100%;
+  min-height: 300px;
+  resize: vertical;
+}
+
+.location-section {
+  width: 100%;
+}
+
+.coordinates {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.coordinates input {
+  width: 100%;
+}
+
+.entry-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.entry-main {
+  min-height: 400px;
+}
+
+.content-area {
+  height: 300px !important;
+  resize: vertical;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.entry-sidebar {
+  position: sticky;
+  top: 1rem;
+}
+
+.location-card {
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1px solid #e9ecef;
+}
+
+.location-card-title {
+  color: #495057;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.form-floating {
+  position: relative;
+}
+
+.form-floating > label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 1rem;
+  opacity: 0.65;
+  transform-origin: 0 0;
+  transition: opacity .1s ease-in-out, transform .1s ease-in-out;
+}
+
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label {
+  opacity: .65;
+  transform: scale(.85) translateY(-0.5rem) translateX(0.15rem);
+  background-color: white;
+  padding: 0 0.5rem;
+  margin-left: -0.5rem;
+}
+
+.form-control-lg {
+  font-size: 1.25rem;
+  padding: 1rem 1.25rem;
+}
+
+.images-section {
+  margin-top: 2rem;
+}
+
+.image-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.image-preview-item {
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.image-upload-box {
+  border: 2px dashed #dee2e6;
+  border-radius: 12px;
+  background-color: #f8f9fa;
+  transition: all 0.2s ease;
+}
+
+.image-upload-box:hover {
+  border-color: #007bff;
+  background-color: #f1f8ff;
+}
+
+.btn-light {
+  background-color: #f8f9fa;
+  border-color: #e9ecef;
+}
+
+.btn-light:hover {
+  background-color: #e9ecef;
+  border-color: #dde2e6;
+}
+
+.modal-footer {
+  border-top: 1px solid #e9ecef;
+  padding: 1.25rem;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #495057;
 }
 </style> 
