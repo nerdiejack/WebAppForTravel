@@ -9,16 +9,68 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarContent">
           <ul class="navbar-nav ms-auto">
-            <li class="nav-item">
-              <div class="dropdown">
-                <button class="nav-link dropdown-toggle" @click="toggleDropdown">
-                  <i class="fas fa-cog"></i> Options
-                </button>
-                <div v-if="isDropdownOpen" class="dropdown-menu dropdown-menu-end show">
-                  <a class="dropdown-item" href="#" @click.prevent="openEditor">
-                    <i class="fas fa-plus me-2"></i>New Entry
-                  </a>
+            <li class="nav-item dropdown position-relative">
+              <button class="nav-link" @click="toggleDiaryList">
+                Diary Entries <i class="fas fa-chevron-down" :class="{ 'rotate-180': !isDiaryListCollapsed }"></i>
+              </button>
+              <div v-show="!isDiaryListCollapsed" class="diary-list">
+                <div v-if="entriesLoading" class="text-center py-4">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading entries...</span>
+                  </div>
                 </div>
+
+                <div v-else-if="error" class="alert alert-danger" role="alert">
+                  {{ error }}
+                  <button @click="retryLoading" class="btn btn-outline-danger btn-sm ms-2">
+                    Retry
+                  </button>
+                </div>
+
+                <div v-else-if="entries.length === 0" class="text-center py-4 text-muted">
+                  <i class="fas fa-book-open fa-3x mb-3"></i>
+                  <p>No diary entries yet. Start documenting your journey!</p>
+                </div>
+
+                <div v-else class="diary-entries">
+                  <div v-for="entry in entries" 
+                       :key="entry._id" 
+                       class="diary-card" 
+                       @click="selectedEntry = entry">
+                    <div class="diary-card-content">
+                      <div class="diary-card-left">
+                        <div v-if="entry.images.length > 0" class="preview-image">
+                          <img :src="entry.images[0].replace('/uploads/', '/uploads/thumbnails/')" :alt="entry.title">
+                        </div>
+                        <div v-else class="preview-image no-image">
+                          <i class="fas fa-image"></i>
+                        </div>
+                      </div>
+                      <div class="diary-card-middle">
+                        <h5>{{ entry.title }}</h5>
+                        <div class="text-muted">
+                          <small>
+                            <i class="fas fa-map-marker-alt me-1"></i>{{ entry.location.name }}
+                            <span class="ms-2"><i class="fas fa-calendar me-1"></i>{{ formatDate(entry.created_at) }}</span>
+                          </small>
+                        </div>
+                      </div>
+                      <div class="diary-card-right">
+                        <span class="country-flag">{{ getCountryFlag(entry.location.name) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li class="nav-item dropdown">
+              <button type="button" class="nav-link" @click="toggleDropdown">
+                <i class="fas fa-cog"></i> Options <i class="fas fa-chevron-down ms-1" :class="{ 'rotate-180': isDropdownOpen }"></i>
+              </button>
+              <div class="dropdown-menu dropdown-menu-end" :class="{ 'show': isDropdownOpen }">
+                <a class="dropdown-item" href="#" @click.prevent="openEditor">
+                  <i class="fas fa-plus me-2"></i>New Entry
+                </a>
               </div>
             </li>
           </ul>
@@ -62,7 +114,15 @@
         />
       </div>
 
-      <div class="diary-list">
+      <div class="diary-list" :class="{ collapsed: isDiaryListCollapsed }">
+        <div 
+          class="diary-list-handle" 
+          data-bs-toggle="tooltip"
+          data-bs-placement="top"
+          title="Hover to see diary entries"
+        >
+          <span class="handle-text">Diary Entries</span>
+        </div>
         <div v-if="entriesLoading" class="text-center py-4">
           <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Loading entries...</span>
@@ -270,7 +330,7 @@
 import { ref, onMounted, onUnmounted, nextTick, reactive } from 'vue'
 import api from '../utils/axios'
 import { loadGoogleMaps, cleanupGoogleMaps } from '../utils/mapLoader'
-import { Collapse, Modal, Dropdown } from 'bootstrap'
+import { Collapse, Modal, Dropdown, Tooltip } from 'bootstrap'
 import DiaryEntryDisplay from './DiaryEntryDisplay.vue'
 
 export default {
@@ -296,6 +356,7 @@ export default {
     const google = ref(null)
     const isDropdownOpen = ref(false)
     const imageInput = ref(null)
+    const isDiaryListCollapsed = ref(true)
 
     let mapInitialized = false
 
@@ -763,7 +824,7 @@ export default {
     }
 
     const openEditor = () => {
-      isEditing.value = false
+      isEditing.value = false;
       newEntry.value = {
         title: '',
         content: '',
@@ -773,16 +834,22 @@ export default {
           lng: null
         },
         images: []
-      }
+      };
       // Reset image-related state
-      imagePreviewUrls.value = []
-      imageFiles.value = []
-      uploadStatus.value = ''
+      imagePreviewUrls.value = [];
+      imageFiles.value = [];
+      uploadStatus.value = '';
       if (imageInput.value) {
-        imageInput.value.value = ''
+        imageInput.value.value = '';
       }
-      new Modal(editorModal.value).show()
-    }
+      
+      // Close the options dropdown
+      isDropdownOpen.value = false;
+      
+      // Show the modal using Bootstrap
+      const modal = new Modal(editorModal.value);
+      modal.show();
+    };
 
     const closeEditor = () => {
       const modalInstance = Modal.getInstance(editorModal.value);
@@ -971,18 +1038,30 @@ export default {
       return '🌍';
     }
 
-    const toggleDropdown = () => {
+    const toggleDropdown = (event) => {
+      event.stopPropagation() // Prevent event bubbling
       isDropdownOpen.value = !isDropdownOpen.value
+
+      // Close dropdown when clicking outside
+      const closeDropdown = (e) => {
+        if (!e.target.closest('.nav-item.dropdown')) {
+          isDropdownOpen.value = false
+          document.removeEventListener('click', closeDropdown)
+        }
+      }
+
+      if (isDropdownOpen.value) {
+        // Add event listener with a slight delay to avoid immediate trigger
+        setTimeout(() => {
+          document.addEventListener('click', closeDropdown)
+        }, 0)
+      }
     }
 
-    // Close dropdown when clicking outside
-    onMounted(() => {
-      document.addEventListener('click', (event) => {
-        const dropdown = document.querySelector('.dropdown')
-        if (dropdown && !dropdown.contains(event.target)) {
-          isDropdownOpen.value = false
-        }
-      })
+    // Add cleanup for dropdown listeners
+    onUnmounted(() => {
+      document.removeEventListener('click', closeDropdown)
+      cleanup()
     })
 
     const openImagePreview = (imageUrl) => {
@@ -996,28 +1075,58 @@ export default {
       }
     };
 
+    const handleClickOutside = (event) => {
+      const diaryListButton = document.querySelector('.nav-item.dropdown .nav-link')
+      const diaryList = document.querySelector('.diary-list')
+      
+      if (!isDiaryListCollapsed.value && 
+          !diaryList?.contains(event.target) && 
+          !diaryListButton?.contains(event.target)) {
+        isDiaryListCollapsed.value = true
+      }
+    }
+
+    const toggleDiaryList = (event) => {
+      event.stopPropagation()
+      isDiaryListCollapsed.value = !isDiaryListCollapsed.value
+    }
+
     onMounted(async () => {
       try {
-        console.log('Component mounted, initializing...');
-        await loadEntries(); // Load entries first
-        await nextTick(); // Wait for DOM update
-        await initMap(); // Then initialize map
+        console.log('Component mounted, initializing...')
+        await loadEntries() // Load entries first
+        await nextTick() // Wait for DOM update
+        await initMap() // Then initialize map
 
         // Initialize modals
-        editorModal.value = document.getElementById('editorModal');
-        imagePreviewModal.value = document.getElementById('imagePreviewModal');
+        editorModal.value = document.getElementById('editorModal')
+        imagePreviewModal.value = document.getElementById('imagePreviewModal')
 
         // Initialize modals with Bootstrap
-        new Modal(editorModal.value);
-        new Modal(imagePreviewModal.value);
+        if (editorModal.value) {
+          new Modal(editorModal.value)
+        }
+        if (imagePreviewModal.value) {
+          new Modal(imagePreviewModal.value)
+        }
+
+        // Add click outside listener
+        document.addEventListener('click', handleClickOutside)
+
+        // Initialize tooltips
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        tooltipTriggerList.forEach(tooltipTriggerEl => {
+          new Tooltip(tooltipTriggerEl)
+        })
 
       } catch (err) {
-        console.error('Error during component mount:', err);
-        error.value = 'Failed to initialize the application';
+        console.error('Error during component mount:', err)
+        error.value = 'Failed to initialize the application'
       }
-    });
+    })
 
     onUnmounted(() => {
+      document.removeEventListener('click', handleClickOutside)
       cleanup()
     })
 
@@ -1104,6 +1213,8 @@ export default {
       selectedImage,
       openImagePreview,
       triggerImageUpload,
+      isDiaryListCollapsed,
+      toggleDiaryList,
     }
   }
 }
@@ -1158,12 +1269,122 @@ export default {
   background: white;
   padding: 1rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   overflow-y: auto;
-  height: 100%;
+  max-height: 600px; /* Increased height */
+  position: absolute;
+  right: 0;
+  top: 100%;
+  width: 400px; /* Increased width */
+  z-index: 1000;
+  margin-top: 0.5rem;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+.nav-item.dropdown {
+  position: relative;
+}
+
+.nav-item.dropdown .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  color: #212529;
+  text-decoration: none;
+}
+
+.nav-item.dropdown .nav-link:hover {
+  color: #0d6efd;
+}
+
+.nav-item.dropdown .nav-link i {
+  transition: transform 0.3s ease;
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.5rem;
+  min-width: 200px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  border: 1px solid rgba(0,0,0,0.1);
+  z-index: 1000;
+  padding: 0.5rem 0;
+  display: none;
+}
+
+.dropdown-menu.show {
+  display: block;
+}
+
+.dropdown-menu-end {
+  right: 0;
+  left: auto;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: #212529;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background: #f8f9fa;
+  color: #0d6efd;
+}
+
+.diary-list-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0 0 8px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 0 1rem;
+  display: none; /* Hide the handle by default */
+}
+
+.diary-list-handle::before {
+  content: '↓';
+  font-size: 1.2rem;
+  color: #6c757d;
+  transition: transform 0.3s ease;
+}
+
+.diary-list:hover .diary-list-handle::before {
+  transform: rotate(180deg);
+}
+
+.handle-text {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .diary-entries {
+  padding-bottom: 40px; /* Add space for the handle */
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -1176,6 +1397,11 @@ export default {
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
+  margin-bottom: 0.75rem;
+}
+
+.diary-card:last-child {
+  margin-bottom: 0;
 }
 
 .diary-card:hover {
@@ -1814,5 +2040,29 @@ export default {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
+}
+
+/* Add a toggle button in the navbar */
+.toggle-list-btn {
+  background: none;
+  border: none;
+  color: #212529;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle-list-btn:hover {
+  color: #0d6efd;
+}
+
+.toggle-list-btn i {
+  transition: transform 0.3s ease;
+}
+
+.toggle-list-btn.collapsed i {
+  transform: rotate(180deg);
 }
 </style> 
