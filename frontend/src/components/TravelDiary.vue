@@ -114,88 +114,99 @@
 
     <!-- Editor Modal -->
     <div class="modal fade" id="editorModal" tabindex="-1" ref="editorModal" aria-labelledby="editorModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-fullscreen">
+      <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 70%; width: 70%;">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="editorModalLabel">{{ isEditing ? 'Edit Entry' : 'New Entry' }}</h5>
             <button type="button" class="btn-close" @click="closeEditor" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <div class="editor-container">
-              <div class="editor-main">
-                <div class="form-group mb-4">
-                  <input 
-                    v-model="newEntry.title" 
-                    class="form-control form-control-lg" 
-                    placeholder="Enter your title..."
-                    required
-                  >
-                </div>
-                <div class="form-group mb-4">
-                  <textarea 
-                    v-model="newEntry.content" 
-                    class="form-control" 
-                    placeholder="Write your story..."
-                    rows="12"
-                    required
-                  ></textarea>
-                </div>
+            <form @submit.prevent="saveDiaryEntry">
+              <div class="mb-3">
+                <label for="title" class="form-label">Title</label>
+                <input 
+                  id="title"
+                  v-model="newEntry.title" 
+                  class="form-control" 
+                  placeholder="Enter your title..."
+                  required
+                >
               </div>
-              <div class="editor-sidebar">
-                <div class="sidebar-section">
-                  <h6><i class="fas fa-map-marker-alt me-2"></i>Location</h6>
+              
+              <div class="mb-3">
+                <label for="content" class="form-label">Content</label>
+                <textarea 
+                  id="content"
+                  v-model="newEntry.content" 
+                  class="form-control" 
+                  placeholder="Write your story..."
+                  rows="8"
+                  required
+                ></textarea>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-12 mb-2">
+                  <label class="form-label">Location</label>
+                </div>
+                <div class="col-12 mb-2">
                   <input 
                     v-model="newEntry.location.name" 
-                    class="form-control mb-2" 
+                    class="form-control" 
                     placeholder="Location name"
                     required
                   >
-                  <div class="coordinates-inputs">
-                    <input 
-                      v-model.number="newEntry.location.lat" 
-                      type="number" 
-                      class="form-control" 
-                      placeholder="Latitude"
-                      step="any"
-                      required
-                    >
-                    <input 
-                      v-model.number="newEntry.location.lng" 
-                      type="number" 
-                      class="form-control" 
-                      placeholder="Longitude"
-                      step="any"
-                      required
-                    >
-                  </div>
-                  <button type="button" @click="pickLocationOnMap" class="btn btn-outline-primary w-100 mt-2">
+                </div>
+                <div class="col-md-6">
+                  <input 
+                    v-model.number="newEntry.location.lat" 
+                    type="number" 
+                    class="form-control" 
+                    placeholder="Latitude"
+                    step="any"
+                    required
+                  >
+                </div>
+                <div class="col-md-6">
+                  <input 
+                    v-model.number="newEntry.location.lng" 
+                    type="number" 
+                    class="form-control" 
+                    placeholder="Longitude"
+                    step="any"
+                    required
+                  >
+                </div>
+                <div class="col-12 mt-2">
+                  <button type="button" @click="pickLocationOnMap" class="btn btn-outline-primary w-100">
                     <i class="fas fa-map-pin me-2"></i>Pick on Map
                   </button>
                 </div>
-                <div class="sidebar-section">
-                  <h6><i class="fas fa-images me-2"></i>Images</h6>
-                  <input 
-                    type="file" 
-                    @change="handleImageUpload" 
-                    accept="image/*" 
-                    multiple 
-                    class="form-control mb-3"
-                  >
-                  <div class="image-preview-grid">
-                    <div v-for="(image, index) in newEntry.images" 
-                         :key="index" 
-                         class="image-preview-item">
-                      <img :src="image" :alt="'Preview ' + (index + 1)">
-                      <button type="button" 
-                              class="btn btn-danger btn-sm remove-image" 
-                              @click="removeImage(index)">
-                        <i class="fas fa-times"></i>
-                      </button>
-                    </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Images</label>
+                <input 
+                  type="file" 
+                  @change="handleImageUpload" 
+                  accept="image/*" 
+                  multiple 
+                  class="form-control mb-2"
+                >
+                <div class="image-preview-grid">
+                  <div v-for="(image, index) in newEntry.images" 
+                       :key="index" 
+                       class="image-preview-item">
+                    <img :src="image" :alt="'Preview ' + (index + 1)">
+                    <button type="button" 
+                            class="btn btn-danger btn-sm remove-image" 
+                            @click="removeImage(index)">
+                      <i class="fas fa-times"></i>
+                    </button>
                   </div>
                 </div>
               </div>
-            </div>
+            </form>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="closeEditor">Cancel</button>
@@ -1276,5 +1287,50 @@ export default {
 
 .dropdown-toggle:hover {
   color: #0d6efd;
+}
+
+.modal-dialog {
+  margin: 1.75rem auto;
+}
+
+.image-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.image-preview-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.image-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  border-radius: 0.2rem;
+  background: rgba(220, 53, 69, 0.9);
+  border: none;
+  color: white;
+}
+
+.remove-image:hover {
+  background: rgba(220, 53, 69, 1);
+}
+
+.form-label {
+  font-weight: 500;
+  color: #495057;
 }
 </style> 
