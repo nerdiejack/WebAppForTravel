@@ -1040,6 +1040,12 @@ export default {
 
     const toggleDropdown = (event) => {
       event.stopPropagation() // Prevent event bubbling
+      
+      // Close diary list if it's open
+      if (!isDiaryListCollapsed.value) {
+        isDiaryListCollapsed.value = true
+      }
+      
       isDropdownOpen.value = !isDropdownOpen.value
 
       // Close dropdown when clicking outside
@@ -1056,6 +1062,17 @@ export default {
           document.addEventListener('click', closeDropdown)
         }, 0)
       }
+    }
+
+    const toggleDiaryList = (event) => {
+      event.stopPropagation()
+      
+      // Close options dropdown if it's open
+      if (isDropdownOpen.value) {
+        isDropdownOpen.value = false
+      }
+      
+      isDiaryListCollapsed.value = !isDiaryListCollapsed.value
     }
 
     // Add cleanup for dropdown listeners
@@ -1084,11 +1101,6 @@ export default {
           !diaryListButton?.contains(event.target)) {
         isDiaryListCollapsed.value = true
       }
-    }
-
-    const toggleDiaryList = (event) => {
-      event.stopPropagation()
-      isDiaryListCollapsed.value = !isDiaryListCollapsed.value
     }
 
     onMounted(async () => {
@@ -1234,10 +1246,8 @@ export default {
 }
 
 .main-content {
-  display: grid;
-  grid-template-columns: minmax(600px, 1fr) 300px;
-  gap: 1rem;
-  padding: 1rem;
+  flex: 1;
+  padding: 2rem;
   height: calc(100vh - 56px); /* Subtract navbar height */
   overflow: hidden;
 }
@@ -1245,9 +1255,11 @@ export default {
 .map-wrapper {
   position: relative;
   height: 100%;
-  border-radius: 8px;
+  max-width: 1400px; /* Set maximum width */
+  margin: 0 auto; /* Center the map */
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   background: white;
 }
 
@@ -1265,20 +1277,46 @@ export default {
   height: 100%;
 }
 
-.diary-list {
+.view-all-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
   background: white;
-  padding: 1rem;
+  color: #007bff;
+  border: 1px solid #007bff;
+  padding: 0.75rem 1rem;
   border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.view-all-btn:hover {
+  background: #007bff;
+  color: white;
+  transform: translateY(-1px);
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  overflow-y: auto;
-  max-height: 600px; /* Increased height */
+}
+
+/* Update diary list positioning */
+.diary-list {
   position: absolute;
   right: 0;
   top: 100%;
-  width: 400px; /* Increased width */
+  width: 400px;
+  max-height: 600px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  overflow-y: auto;
   z-index: 1000;
   margin-top: 0.5rem;
   border: 1px solid rgba(0,0,0,0.1);
+  padding: 1rem;
 }
 
 .rotate-180 {
@@ -1510,28 +1548,6 @@ export default {
 .btn-outline-danger:hover {
   color: #fff;
   background-color: #dc3545;
-}
-
-.view-all-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 2;
-  background: white;
-  color: #007bff;
-  border: 1px solid #007bff;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
-}
-
-.view-all-btn:hover {
-  background: #007bff;
-  color: white;
 }
 
 .entry-details {
