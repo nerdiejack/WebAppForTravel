@@ -6,8 +6,28 @@ from typing import List
 from bson import ObjectId
 import os
 import uuid
+from PIL import Image
+import io
 
 router = APIRouter(prefix="/api")
+
+def create_thumbnail(image_content: bytes, size: tuple = (400, 400)) -> bytes:
+    """Create a thumbnail from image content"""
+    img = Image.open(io.BytesIO(image_content))
+    
+    # Convert RGBA to RGB if necessary
+    if img.mode in ('RGBA', 'LA'):
+        background = Image.new('RGB', img.size, (255, 255, 255))
+        background.paste(img, mask=img.split()[-1])
+        img = background
+    
+    # Calculate aspect ratio preserving dimensions
+    img.thumbnail(size, Image.Resampling.LANCZOS)
+    
+    # Save thumbnail to bytes
+    thumb_io = io.BytesIO()
+    img.save(thumb_io, 'JPEG', quality=85)
+    return thumb_io.getvalue()
 
 @router.post("/diary/entries/", response_model=DiaryEntry)
 async def create_diary_entry(entry: DiaryEntry):
@@ -79,20 +99,32 @@ async def delete_diary_entry(entry_id: str):
 @router.post("/diary/upload-image/")
 async def upload_image(file: UploadFile = File(...)):
     try:
-        # Create uploads directory if it doesn't exist
+        # Create uploads and thumbnails directories if they don't exist
         os.makedirs("uploads", exist_ok=True)
+        os.makedirs("uploads/thumbnails", exist_ok=True)
         
         # Generate unique filename
         file_extension = os.path.splitext(file.filename)[1]
         unique_filename = f"{uuid.uuid4()}{file_extension}"
         file_path = f"uploads/{unique_filename}"
+        thumbnail_path = f"uploads/thumbnails/{unique_filename}"
         
-        # Save file
+        # Read file content
+        content = await file.read()
+        
+        # Save original file
         with open(file_path, "wb") as buffer:
-            content = await file.read()
             buffer.write(content)
         
-        # Return the URL
-        return {"url": f"/uploads/{unique_filename}"}
+        # Create and save thumbnail
+        thumbnail_content = create_thumbnail(content)
+        with open(thumbnail_path, "wb") as buffer:
+            buffer.write(thumbnail_content)
+        
+        # Return both URLs
+        return {
+            "url": f"/uploads/{unique_filename}",
+            "thumbnail_url": f"/uploads/thumbnails/{unique_filename}"
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 

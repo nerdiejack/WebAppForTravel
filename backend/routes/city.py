@@ -4,21 +4,20 @@ from models import City
 
 router = APIRouter()
 
-cities_collection = db["cities"]
-
 @router.post("/city/")
-def add_city(city: City):
+async def add_city(city: City):
     """Add a new city to the database"""
-    if cities_collection.find_one({"name": city.name}):
+    existing_city = await db.cities.find_one({"name": city.name})
+    if existing_city:
         raise HTTPException(status_code=400, detail="City already exists")
 
-    cities_collection.insert_one(city.dict())
+    await db.cities.insert_one(city.dict())
     return {"message": "City added successfully"}
 
 @router.get("/city/{name}")
-def get_city(name: str):
+async def get_city(name: str):
     """Get information about a specific city"""
-    city = cities_collection.find_one({"name": name}, {"_id": 0})
+    city = await db.cities.find_one({"name": name}, {"_id": 0})
     if not city:
         raise HTTPException(status_code=404, detail="City not found")
     return city

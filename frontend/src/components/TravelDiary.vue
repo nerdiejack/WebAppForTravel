@@ -88,7 +88,7 @@
             <div class="diary-card-content">
               <div class="diary-card-left">
                 <div v-if="entry.images.length > 0" class="preview-image">
-                  <img :src="entry.images[0]" :alt="entry.title">
+                  <img :src="entry.images[0].replace('/uploads/', '/uploads/thumbnails/')" :alt="entry.title">
                 </div>
                 <div v-else class="preview-image no-image">
                   <i class="fas fa-image"></i>
@@ -208,7 +208,10 @@
                        :key="index" 
                        class="image-preview-item">
                     <div class="image-number">{{ index + 1 }}</div>
-                    <img :src="image" :alt="'Preview ' + (index + 1)" class="preview-image">
+                    <img :src="image.thumbnail" 
+                         :alt="'Preview ' + (index + 1)" 
+                         class="preview-image"
+                         @click="openImagePreview(image.original)">
                     <button type="button" @click="removeImage(index)" class="btn btn-danger btn-sm remove-image">
                       <i class="fas fa-times"></i>
                     </button>
@@ -225,6 +228,20 @@
               </span>
               {{ isEditing ? 'Update Entry' : 'Save Entry' }}
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add image preview modal -->
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center p-0">
+            <img :src="selectedImage" class="img-fluid" alt="Full size preview">
           </div>
         </div>
       </div>
@@ -283,6 +300,9 @@ export default {
     const imageFiles = ref([])
     const imagePreviewUrls = ref([])
     const uploadStatus = ref('')
+
+    const selectedImage = ref(null)
+    const imagePreviewModal = ref(null)
 
     const initMap = async () => {
       try {
@@ -550,7 +570,10 @@ export default {
           // Create preview URL
           const reader = new FileReader();
           reader.onload = (e) => {
-            imagePreviewUrls.value.push(e.target.result);
+            imagePreviewUrls.value.push({
+              original: e.target.result,
+              thumbnail: e.target.result // For new uploads, use same URL for both
+            });
           };
           reader.readAsDataURL(resizedFile);
         } catch (error) {
@@ -580,7 +603,10 @@ export default {
           }
           
           const data = await response.json();
-          uploadedUrls.push(data.url);
+          uploadedUrls.push({
+            original: data.url,
+            thumbnail: data.thumbnail_url
+          });
         }
         
         uploadStatus.value = '';
@@ -596,12 +622,12 @@ export default {
 
     const removeImage = (index) => {
       // If the image is a data URL (new upload), remove from both arrays
-      if (imagePreviewUrls.value[index].startsWith('data:')) {
+      if (imagePreviewUrls.value[index].original.startsWith('data:')) {
         const fileIndex = imageFiles.value.findIndex((_, i) => {
           const reader = new FileReader();
           return new Promise((resolve) => {
             reader.onload = (e) => {
-              resolve(e.target.result === imagePreviewUrls.value[index]);
+              resolve(e.target.result === imagePreviewUrls.value[index].original);
             };
             reader.readAsDataURL(imageFiles.value[i]);
           });
@@ -842,7 +868,7 @@ export default {
     const editEntry = (entry) => {
       // Set up the entry for editing with ALL fields
       newEntry.value = {
-        _id: entry._id,  // Important: Keep the ID for updating
+        _id: entry._id,
         title: entry.title,
         content: entry.content,
         location: {
@@ -851,13 +877,16 @@ export default {
           lng: entry.location.lng
         },
         images: entry.images || [],
-        created_at: entry.created_at,  // Keep original creation date
+        created_at: entry.created_at,
         updated_at: entry.updated_at
       };
       isEditing.value = true;
       
       // Set existing images for preview
-      imagePreviewUrls.value = entry.images || [];
+      imagePreviewUrls.value = entry.images.map(url => ({
+        original: url,
+        thumbnail: url.replace('/uploads/', '/uploads/thumbnails/')
+      }));
       imageFiles.value = []; // Reset image files since these are existing images
       
       // Show the editor modal
@@ -867,7 +896,7 @@ export default {
 
     const saveDiaryEntry = async () => {
       if (uploadLoading.value || loading.value) {
-        return; // Prevent multiple submissions
+        return;
       }
 
       try {
@@ -880,12 +909,14 @@ export default {
         }
         
         // Combine existing images with newly uploaded ones
-        const existingImages = imagePreviewUrls.value.filter(url => !url.startsWith('data:'));
+        const existingImages = imagePreviewUrls.value
+          .filter(url => !url.original.startsWith('data:'))
+          .map(url => url.original);
         
         // Prepare the complete entry data
         const entryData = {
-          ...newEntry.value,  // Keep all existing fields
-          images: [...existingImages, ...uploadedImageUrls],
+          ...newEntry.value,
+          images: [...existingImages, ...uploadedImageUrls.map(url => url.original)],
           updated_at: new Date().toISOString()
         };
 
@@ -1006,12 +1037,18 @@ export default {
       })
     })
 
+    const openImagePreview = (imageUrl) => {
+      selectedImage.value = imageUrl;
+      new Modal(imagePreviewModal.value).show();
+    };
+
     onMounted(async () => {
       try {
         console.log('Component mounted, initializing...');
         await loadEntries(); // Load entries first
         await nextTick(); // Wait for DOM update
         await initMap(); // Then initialize map
+        imagePreviewModal.value = document.getElementById('imagePreviewModal');
       } catch (err) {
         console.error('Error during component mount:', err);
         error.value = 'Failed to initialize the application. Please refresh the page.';
@@ -1115,6 +1152,8 @@ export default {
       resetForm,
       imageInput,
       uploadStatus,
+      selectedImage,
+      openImagePreview,
     }
   }
 }
@@ -1201,7 +1240,7 @@ export default {
   gap: 0.75rem;
 }
 
-.preview-image {
+.diary-card-left {
   width: 45px;
   height: 45px;
   border-radius: 4px;
@@ -1236,6 +1275,10 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.diary-card-right {
+  flex-shrink: 0;
 }
 
 .map-overlay {
@@ -1444,6 +1487,12 @@ export default {
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #dee2e6;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.image-preview-item:hover {
+  transform: scale(1.05);
 }
 
 .image-preview-item img {
@@ -1502,5 +1551,14 @@ export default {
 .btn:disabled {
   cursor: not-allowed;
   opacity: 0.65;
+}
+
+#imagePreviewModal .modal-body {
+  background-color: #000;
+}
+
+#imagePreviewModal .img-fluid {
+  max-height: 80vh;
+  width: auto;
 }
 </style> 
