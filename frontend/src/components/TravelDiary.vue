@@ -31,9 +31,9 @@
       <div class="map-wrapper">
         <div class="map-container" ref="mapContainer">
           <!-- Loading overlay -->
-          <div v-if="loading" class="map-overlay">
+          <div v-if="mapLoading" class="map-overlay">
             <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
+              <span class="visually-hidden">Loading map...</span>
             </div>
           </div>
 
@@ -48,7 +48,7 @@
           </div>
 
           <div ref="mapElement" style="width: 100%; height: 100%;"></div>
-          <button v-if="!loading && !error" @click="viewAllLocations" class="view-all-btn">
+          <button v-if="!mapLoading && !error" @click="viewAllLocations" class="view-all-btn">
             <i class="fas fa-globe-americas me-2"></i>View All Locations
           </button>
         </div>
@@ -62,9 +62,9 @@
       </div>
 
       <div class="diary-list">
-        <div v-if="loading" class="text-center py-4">
+        <div v-if="entriesLoading" class="text-center py-4">
           <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+            <span class="visually-hidden">Loading entries...</span>
           </div>
         </div>
 
@@ -114,7 +114,7 @@
 
     <!-- Editor Modal -->
     <div class="modal fade" id="editorModal" tabindex="-1" ref="editorModal" aria-labelledby="editorModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 70%; width: 70%;">
+      <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 85%; width: 85%;">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="editorModalLabel">{{ isEditing ? 'Edit Entry' : 'New Entry' }}</h5>
@@ -192,15 +192,24 @@
                   accept="image/*" 
                   multiple 
                   class="form-control mb-2"
+                  ref="imageInput"
+                  :disabled="uploadLoading || loading"
                 >
+                <div v-if="uploadStatus" class="upload-status alert alert-info">
+                  <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-2" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>{{ uploadStatus }}</span>
+                  </div>
+                </div>
                 <div class="image-preview-grid">
-                  <div v-for="(image, index) in newEntry.images" 
+                  <div v-for="(image, index) in imagePreviewUrls" 
                        :key="index" 
                        class="image-preview-item">
-                    <img :src="image" :alt="'Preview ' + (index + 1)">
-                    <button type="button" 
-                            class="btn btn-danger btn-sm remove-image" 
-                            @click="removeImage(index)">
+                    <div class="image-number">{{ index + 1 }}</div>
+                    <img :src="image" :alt="'Preview ' + (index + 1)" class="preview-image">
+                    <button type="button" @click="removeImage(index)" class="btn btn-danger btn-sm remove-image">
                       <i class="fas fa-times"></i>
                     </button>
                   </div>
@@ -209,8 +218,11 @@
             </form>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeEditor">Cancel</button>
-            <button type="button" class="btn btn-primary" @click="saveDiaryEntry">
+            <button type="button" class="btn btn-secondary" @click="closeEditor" :disabled="loading || uploadLoading">Cancel</button>
+            <button type="button" class="btn btn-primary" @click="saveDiaryEntry" :disabled="loading || uploadLoading">
+              <span v-if="loading || uploadLoading" class="spinner-border spinner-border-sm me-2" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </span>
               {{ isEditing ? 'Update Entry' : 'Save Entry' }}
             </button>
           </div>
@@ -242,10 +254,14 @@ export default {
     const selectedEntry = ref(null)
     const activeInfoWindow = ref(null)
     const loading = ref(false)
+    const uploadLoading = ref(false)
+    const mapLoading = ref(false)
+    const entriesLoading = ref(false)
     const error = ref(null)
     const geocoder = ref(null)
     const google = ref(null)
     const isDropdownOpen = ref(false)
+    const imageInput = ref(null)
 
     let mapInitialized = false
 
@@ -264,6 +280,10 @@ export default {
     const viewEntryModal = ref(null)
     const isEditing = ref(false)
 
+    const imageFiles = ref([])
+    const imagePreviewUrls = ref([])
+    const uploadStatus = ref('')
+
     const initMap = async () => {
       try {
         if (!mapContainer.value || !mapElement.value) {
@@ -271,7 +291,7 @@ export default {
           throw new Error('Map container not found');
         }
 
-        loading.value = true;
+        mapLoading.value = true;
         error.value = null;
 
         // Load Google Maps API first
@@ -308,13 +328,13 @@ export default {
         error.value = 'Failed to initialize map. Please try again.';
         mapInitialized = false;
       } finally {
-        loading.value = false;
+        mapLoading.value = false;
       }
     };
 
     const loadEntries = async () => {
       try {
-        loading.value = true
+        entriesLoading.value = true
         error.value = null
         
         const response = await api.get('/api/diary/entries')
@@ -325,7 +345,7 @@ export default {
         error.value = 'Failed to load diary entries. Please try again later.'
         entries.value = []
       } finally {
-        loading.value = false
+        entriesLoading.value = false
       }
     }
 
@@ -451,103 +471,146 @@ export default {
       }
     }
 
-    const handleImageUpload = async (event) => {
-      const files = event.target.files;
-      if (!files || files.length === 0) return;
-
-      const maxFileSize = 25 * 1024 * 1024; // 25MB limit
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-
-      try {
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          
-          // Validate file size
-          if (file.size > maxFileSize) {
-            throw new Error(`File "${file.name}" is too large. Maximum size is 25MB.`);
-          }
-
-          // Validate file type
-          if (!allowedTypes.includes(file.type)) {
-            throw new Error(`File "${file.name}" is not a supported image type. Please use JPEG, PNG, or GIF.`);
-          }
-
-          // Compress image before upload if it's larger than 5MB
-          let fileToUpload = file;
-          if (file.size > 5 * 1024 * 1024) {
-            fileToUpload = await compressImage(file);
-          }
-
-          const formData = new FormData();
-          formData.append('file', fileToUpload);
-
-          const response = await api.post('/api/diary/upload-image', formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            },
-            // Add timeout and max content length configs
-            timeout: 30000, // 30 seconds timeout
-            maxContentLength: maxFileSize,
-            maxBodyLength: maxFileSize
-          });
-
-          if (response.data.url) {
-            newEntry.value.images.push(response.data.url);
-          }
-        }
-      } catch (error) {
-        console.error('Error uploading images:', error);
-        alert(error.message || 'Failed to upload images. Please try again.');
-      }
-    };
-
-    const compressImage = async (file) => {
+    const resizeImage = (file) => {
       return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-          const img = new Image();
-          img.src = event.target.result;
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Calculate new dimensions while maintaining aspect ratio
-            let width = img.width;
-            let height = img.height;
-            const maxDimension = 1920; // Max width or height
-
-            if (width > height && width > maxDimension) {
-              height = (height * maxDimension) / width;
-              width = maxDimension;
-            } else if (height > maxDimension) {
-              width = (width * maxDimension) / height;
-              height = maxDimension;
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            ctx.drawImage(img, 0, 0, width, height);
-
-            canvas.toBlob(
-              (blob) => {
-                resolve(new File([blob], file.name, {
-                  type: 'image/jpeg',
-                  lastModified: Date.now()
-                }));
-              },
-              'image/jpeg',
-              0.8 // compression quality
-            );
-          };
-          img.onerror = reject;
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        
+        img.onload = () => {
+          // Max dimensions for 4K
+          const MAX_WIDTH = 3840;
+          const MAX_HEIGHT = 2160;
+          
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate new dimensions while maintaining aspect ratio
+          if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+            const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+            width = Math.floor(width * ratio);
+            height = Math.floor(height * ratio);
+          }
+          
+          // Only resize if the image is larger than 4K
+          if (width === img.width && height === img.height) {
+            URL.revokeObjectURL(img.src);
+            resolve(file);
+            return;
+          }
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convert to blob with high quality
+          canvas.toBlob((blob) => {
+            URL.revokeObjectURL(img.src);
+            resolve(new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            }));
+          }, 'image/jpeg', 0.92); // Use JPEG with 92% quality
         };
-        reader.onerror = reject;
+        
+        img.onerror = (error) => {
+          URL.revokeObjectURL(img.src);
+          reject(error);
+        };
       });
     };
 
+    const handleImageUpload = async (event) => {
+      const files = event.target.files;
+      if (!files.length) return;
+
+      // Process each file
+      for (const file of files) {
+        try {
+          // Validate file type
+          if (!file.type.startsWith('image/')) {
+            alert('Please upload only image files');
+            continue;
+          }
+
+          // Validate file size (max 25MB)
+          if (file.size > 25 * 1024 * 1024) {
+            alert(`File ${file.name} is too large. Maximum size is 25MB`);
+            continue;
+          }
+
+          // Resize image if needed
+          const resizedFile = await resizeImage(file);
+
+          // Add to files array
+          imageFiles.value.push(resizedFile);
+
+          // Create preview URL
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            imagePreviewUrls.value.push(e.target.result);
+          };
+          reader.readAsDataURL(resizedFile);
+        } catch (error) {
+          console.error('Error processing image:', error);
+          alert(`Failed to process image ${file.name}. Please try again.`);
+        }
+      }
+    };
+
+    const uploadImages = async () => {
+      const uploadedUrls = [];
+      uploadLoading.value = true;
+      
+      try {
+        for (const file of imageFiles.value) {
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          uploadStatus.value = `Uploading ${file.name}...`;
+          const response = await fetch('/api/diary/upload-image/', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to upload image ${file.name}`);
+          }
+          
+          const data = await response.json();
+          uploadedUrls.push(data.url);
+        }
+        
+        uploadStatus.value = '';
+        return uploadedUrls;
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        alert(`Failed to upload images. Please try again.`);
+        throw error;
+      } finally {
+        uploadLoading.value = false;
+      }
+    };
+
     const removeImage = (index) => {
-      newEntry.value.images.splice(index, 1)
+      // If the image is a data URL (new upload), remove from both arrays
+      if (imagePreviewUrls.value[index].startsWith('data:')) {
+        const fileIndex = imageFiles.value.findIndex((_, i) => {
+          const reader = new FileReader();
+          return new Promise((resolve) => {
+            reader.onload = (e) => {
+              resolve(e.target.result === imagePreviewUrls.value[index]);
+            };
+            reader.readAsDataURL(imageFiles.value[i]);
+          });
+        });
+        if (fileIndex !== -1) {
+          imageFiles.value.splice(fileIndex, 1);
+        }
+      }
+      imagePreviewUrls.value.splice(index, 1);
     }
 
     const pickLocationOnMap = () => {
@@ -777,12 +840,25 @@ export default {
     }
 
     const editEntry = (entry) => {
-      // Set up the entry for editing
+      // Set up the entry for editing with ALL fields
       newEntry.value = {
-        ...entry,
-        location: { ...entry.location }
+        _id: entry._id,  // Important: Keep the ID for updating
+        title: entry.title,
+        content: entry.content,
+        location: {
+          name: entry.location.name,
+          lat: entry.location.lat,
+          lng: entry.location.lng
+        },
+        images: entry.images || [],
+        created_at: entry.created_at,  // Keep original creation date
+        updated_at: entry.updated_at
       };
       isEditing.value = true;
+      
+      // Set existing images for preview
+      imagePreviewUrls.value = entry.images || [];
+      imageFiles.value = []; // Reset image files since these are existing images
       
       // Show the editor modal
       const modal = new Modal(editorModal.value);
@@ -790,27 +866,81 @@ export default {
     }
 
     const saveDiaryEntry = async () => {
+      if (uploadLoading.value || loading.value) {
+        return; // Prevent multiple submissions
+      }
+
       try {
-        let response
-        if (isEditing.value) {
-          response = await api.put(`/api/diary/entries/${newEntry.value._id}`, newEntry.value)
-          const index = entries.value.findIndex(e => e._id === newEntry.value._id)
-          if (index !== -1) {
-            entries.value[index] = response.data
-          }
-        } else {
-          response = await api.post('/api/diary/entries', newEntry.value)
-          entries.value.push(response.data)
+        loading.value = true;
+        
+        // Upload only new images (from imageFiles)
+        let uploadedImageUrls = [];
+        if (imageFiles.value.length > 0) {
+          uploadedImageUrls = await uploadImages();
         }
         
-        await displayEntriesOnMap()
-        closeEditor()
-        alert(isEditing.value ? 'Entry updated successfully!' : 'Entry added successfully!')
+        // Combine existing images with newly uploaded ones
+        const existingImages = imagePreviewUrls.value.filter(url => !url.startsWith('data:'));
+        
+        // Prepare the complete entry data
+        const entryData = {
+          ...newEntry.value,  // Keep all existing fields
+          images: [...existingImages, ...uploadedImageUrls],
+          updated_at: new Date().toISOString()
+        };
+
+        // Save the diary entry
+        const url = isEditing.value 
+          ? `/api/diary/entries/${entryData._id}` 
+          : '/api/diary/entries/';
+
+        const response = await fetch(url, {
+          method: isEditing.value ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(entryData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Failed to save diary entry');
+        }
+
+        // Reset form and close modal
+        resetForm();
+        closeEditor();
+        
+        // Refresh entries
+        await loadEntries();
+        
+        alert(isEditing.value ? 'Entry updated successfully!' : 'Entry added successfully!');
       } catch (error) {
-        console.error('Error saving diary entry:', error)
-        alert('Failed to save diary entry. Please try again.')
+        console.error('Error saving diary entry:', error);
+        alert(error.message || 'Failed to save diary entry. Please try again.');
+      } finally {
+        loading.value = false;
       }
-    }
+    };
+
+    const resetForm = () => {
+      newEntry.value = {
+        title: '',
+        content: '',
+        location: {
+          name: '',
+          lat: null,
+          lng: null
+        },
+        images: []
+      };
+      imageFiles.value = [];
+      imagePreviewUrls.value = [];
+      isEditing.value = false;
+      if (imageInput.value) {
+        imageInput.value.value = '';
+      }
+    };
 
     const getCountryFlag = (location) => {
       // Common cities and their country flags
@@ -960,6 +1090,9 @@ export default {
       formatDate,
       selectedEntry,
       loading,
+      uploadLoading,
+      mapLoading,
+      entriesLoading,
       error,
       retryLoading,
       handleDiaryEntryClick,
@@ -977,6 +1110,11 @@ export default {
       getCountryFlag,
       isDropdownOpen,
       toggleDropdown,
+      imageFiles,
+      imagePreviewUrls,
+      resetForm,
+      imageInput,
+      uploadStatus,
     }
   }
 }
@@ -1303,8 +1441,9 @@ export default {
 .image-preview-item {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
+  border: 1px solid #dee2e6;
 }
 
 .image-preview-item img {
@@ -1315,22 +1454,53 @@ export default {
 
 .remove-image {
   position: absolute;
-  top: 5px;
-  right: 5px;
+  top: 0.5rem;
+  right: 0.5rem;
   padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-  border-radius: 0.2rem;
-  background: rgba(220, 53, 69, 0.9);
+  border-radius: 50%;
+  background-color: rgba(220, 53, 69, 0.9);
   border: none;
   color: white;
 }
 
 .remove-image:hover {
-  background: rgba(220, 53, 69, 1);
+  background-color: #dc3545;
 }
 
 .form-label {
   font-weight: 500;
   color: #495057;
+}
+
+.image-number {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  z-index: 1;
+}
+
+.upload-status {
+  margin-bottom: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  background-color: #cfe2ff;
+  border-color: #b6d4fe;
+  color: #084298;
+}
+
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.2em;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 </style> 

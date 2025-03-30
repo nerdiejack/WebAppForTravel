@@ -20,6 +20,32 @@ async def create_diary_entry(entry: DiaryEntry):
     created_entry["_id"] = str(created_entry["_id"])
     return created_entry
 
+@router.put("/diary/entries/{entry_id}", response_model=DiaryEntry)
+async def update_diary_entry(entry_id: str, entry: DiaryEntry):
+    try:
+        # Exclude _id from update and set updated_at
+        update_data = entry.dict(exclude={'_id'})
+        update_data["updated_at"] = datetime.utcnow()
+        
+        # Update the entry
+        result = await db.diary_entries.update_one(
+            {"_id": ObjectId(entry_id)},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Diary entry not found")
+        
+        # Get and return the updated entry
+        updated_entry = await db.diary_entries.find_one({"_id": ObjectId(entry_id)})
+        if updated_entry:
+            updated_entry["_id"] = str(updated_entry["_id"])
+            return updated_entry
+            
+        raise HTTPException(status_code=404, detail="Diary entry not found")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.get("/diary/entries/", response_model=List[DiaryEntry])
 async def get_diary_entries():
     entries = []
