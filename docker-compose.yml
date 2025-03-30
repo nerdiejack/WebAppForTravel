@@ -4,26 +4,35 @@ services:
   backend:
     build: ./backend
     container_name: fastapi_app
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     depends_on:
       - db
     environment:
       - MONGO_URI=mongodb://db:27017/travel_db
+      - VUE_APP_GOOGLE_MAPS_API_KEY=${VUE_APP_GOOGLE_MAPS_API_KEY}
+      - VUE_APP_WEATHER_API_KEY=${VUE_APP_WEATHER_API_KEY}
     volumes:
       - ./backend:/app
     networks:
       - app_network
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - VUE_APP_GOOGLE_MAPS_API_KEY=${VUE_APP_GOOGLE_MAPS_API_KEY}
+        - VUE_APP_WEATHER_API_KEY=${VUE_APP_WEATHER_API_KEY}
+        - VUE_APP_API_URL=http://backend:8000
     ports:
       - "80:80"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VUE_APP_API_URL=http://localhost:8000
+      - VUE_APP_GOOGLE_MAPS_API_KEY=${VUE_APP_GOOGLE_MAPS_API_KEY}
+      - VUE_APP_WEATHER_API_KEY=${VUE_APP_WEATHER_API_KEY}
+      - VUE_APP_API_URL=http://backend:8000
     depends_on:
       - backend
     networks:

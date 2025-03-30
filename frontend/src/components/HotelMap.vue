@@ -370,8 +370,8 @@ export default {
       if (!map.value || !google.value) return null;
 
       const marker = new google.value.maps.Marker({
-        position,
         map: map.value,
+        position,
         title: hotel.city,
         animation: google.value.maps.Animation.DROP
       });
