@@ -1,13 +1,19 @@
 <template>
   <div class="diary-entry-display">
-    <div class="sticky-header">
+    <!-- Left side: Text content -->
+    <div class="content-column">
       <div class="entry-header">
         <button class="back-btn" @click="$emit('back-to-map')">
           <i class="fas fa-arrow-left"></i> Back to Map
         </button>
-        <button class="edit-btn" @click="$emit('edit', entry)">
-          <i class="fas fa-edit"></i> Edit Entry
-        </button>
+        <div class="action-buttons">
+          <button class="edit-btn" @click="$emit('edit', entry)">
+            <i class="fas fa-edit"></i> Edit Entry
+          </button>
+          <button class="delete-btn" @click="confirmDelete">
+            <i class="fas fa-trash"></i> Delete
+          </button>
+        </div>
       </div>
 
       <div class="entry-title">
@@ -25,27 +31,23 @@
         </div>
       </div>
 
-      <!-- Images section moved to top and made sticky -->
-      <div v-if="entry.images && entry.images.length > 0" class="sticky-images">
-        <div class="images-container">
-          <div class="images-grid">
-            <div 
-              v-for="(image, index) in entry.images" 
-              :key="index"
-              class="image-thumbnail"
-              @click="openGallery(index)"
-            >
-              <img :src="image" :alt="'Image ' + (index + 1)">
-            </div>
-          </div>
+      <div class="entry-content">
+        <div class="content-text">
+          {{ entry.content }}
         </div>
       </div>
     </div>
 
-    <div class="scrollable-content">
-      <div class="entry-content">
-        <div class="content-text">
-          {{ entry.content }}
+    <!-- Right side: Images -->
+    <div v-if="entry.images && entry.images.length > 0" class="images-column">
+      <div class="images-grid">
+        <div 
+          v-for="(image, index) in entry.images" 
+          :key="index"
+          class="image-item"
+          @click="openGallery(index)"
+        >
+          <img :src="image" :alt="'Image ' + (index + 1)">
         </div>
       </div>
     </div>
@@ -63,6 +65,7 @@
 <script>
 import { ref } from 'vue'
 import ImageGallery from './ImageGallery.vue'
+import api from '../utils/axios'
 
 export default {
   name: 'DiaryEntryDisplay',
@@ -75,7 +78,8 @@ export default {
       required: true
     }
   },
-  setup() {
+  emits: ['back-to-map', 'edit', 'entry-deleted'],
+  setup(props, { emit }) {
     const showGallery = ref(false)
     const currentImageIndex = ref(0)
 
@@ -92,12 +96,26 @@ export default {
       showGallery.value = false
     }
 
+    const confirmDelete = async () => {
+      if (confirm('Are you sure you want to delete this diary entry? This will also delete all associated images.')) {
+        try {
+          await api.delete(`/api/diary/entries/${props.entry._id}`)
+          emit('entry-deleted')
+          emit('back-to-map')
+        } catch (error) {
+          console.error('Error deleting diary entry:', error)
+          alert('Failed to delete diary entry. Please try again.')
+        }
+      }
+    }
+
     return {
       showGallery,
       currentImageIndex,
       formatDate,
       openGallery,
-      closeGallery
+      closeGallery,
+      confirmDelete
     }
   }
 }
@@ -107,66 +125,88 @@ export default {
 .diary-entry-display {
   height: 100%;
   background: white;
-  display: flex;
-  flex-direction: column;
-  position: relative;
+  display: grid;
+  grid-template-columns: 65% 35%; /* Text takes 65%, images take 35% */
+  gap: 0;
 }
 
-.sticky-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.content-column {
+  padding: 2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  border-right: 1px solid #eee;
 }
 
 .entry-header {
-  margin-top: 0;
   display: flex;
   justify-content: space-between;
-  padding: 1rem 2rem;
-  background: white;
-  border-bottom: 1px solid #eee;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .entry-title {
-  margin-top: 0;
-  padding: 1.5rem 2rem;
-  background: white;
-  text-align: center;
-  border-bottom: 1px solid #eee;
+  text-align: left;
 }
 
 .entry-title h2 {
   font-size: 2rem;
-  color: #1a1a1a;
   margin-bottom: 1rem;
+  color: #1a1a1a;
 }
 
 .entry-meta {
   display: flex;
-  justify-content: center;
   gap: 2rem;
+  color: #64748b;
 }
 
-.sticky-images {
-  margin-top: 0;
-  padding: 1.5rem 2rem;
-  background: white;
-  border-bottom: 1px solid #eee;
-}
-
-.images-container {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.scrollable-content {
+.entry-content {
   flex: 1;
-  overflow-y: auto;
+}
+
+.content-text {
+  white-space: pre-wrap;
+  line-height: 1.8;
+  color: #334155;
+  font-size: 1.1rem;
+}
+
+.images-column {
   padding: 2rem;
-  position: relative;
-  z-index: 1;
+  overflow-y: auto;
+  background: #f8f9fa;
+  display: flex;
+  justify-content: center;
+  align-items: start;
+}
+
+.images-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.image-item {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.image-item:hover {
+  transform: scale(1.05);
+}
+
+.image-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .back-btn, .edit-btn {
@@ -199,78 +239,46 @@ export default {
   background: #1976D2;
 }
 
-.entry-content {
-  max-width: 800px;
-  margin: 0 auto;
+.action-buttons {
+  display: flex;
+  gap: 1rem;
 }
 
-.location-info, .date-info {
+.delete-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #64748b;
-}
-
-.content-text {
-  margin: 2rem 0;
-  white-space: pre-wrap;
-  line-height: 1.8;
-  color: #334155;
-  font-size: 1.1rem;
-}
-
-.images-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-  justify-items: center;
-}
-
-.image-thumbnail {
-  width: 180px;
-  height: 180px;
-  overflow: hidden;
-  border-radius: 12px;
-  cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+  background: #dc3545;
+  color: white;
 }
 
-.image-thumbnail:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+.delete-btn:hover {
+  background: #bb2d3b;
 }
 
-.image-thumbnail img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-@media (max-width: 768px) {
-  .entry-header,
-  .entry-title,
-  .sticky-images {
-    padding: 1rem;
+@media (max-width: 991px) {
+  .diary-entry-display {
+    grid-template-columns: 1fr;
   }
 
-  .entry-title h2 {
-    font-size: 1.5rem;
+  .content-column {
+    border-right: none;
+    border-bottom: 1px solid #eee;
   }
 
-  .entry-meta {
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: center;
+  .images-column {
+    padding: 2rem;
   }
 
   .images-grid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  }
-
-  .image-thumbnail {
-    width: 140px;
-    height: 140px;
+    max-width: 500px;
+    gap: 1.5rem;
   }
 }
 </style> 

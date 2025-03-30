@@ -57,7 +57,8 @@
           :entry="selectedEntry"
           @back-to-map="closeSelectedEntry"
           @edit="editEntry"
-          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; background: white;"
+          @entry-deleted="loadEntries"
+          class="diary-entry-display"
         />
       </div>
 
@@ -84,7 +85,7 @@
           <div v-for="entry in entries" 
                :key="entry._id" 
                class="diary-card" 
-               @click="handleDiaryEntryClick(entry)">
+               @click="selectedEntry = entry">
             <div class="diary-card-content">
               <div class="diary-card-left">
                 <div v-if="entry.images.length > 0" class="preview-image">
@@ -310,7 +311,6 @@ export default {
     })
 
     const editorModal = ref(null)
-    const viewEntryModal = ref(null)
     const isEditing = ref(false)
 
     const imageFiles = ref([])
@@ -746,84 +746,12 @@ export default {
       map.value.setZoom(map.value.getZoom() - 0.5);
     }
 
-    const handleDiaryEntryClick = async (entry) => {
-      console.log('Opening diary entry:', entry.title);
-      
-      try {
-        // Cleanup map resources before showing entry
-        if (map.value) {
-          // Clear all markers
-          if (markers.value) {
-            markers.value.forEach(marker => {
-              if (marker) {
-                google.value.maps.event.clearInstanceListeners(marker);
-                marker.setMap(null);
-              }
-            });
-            markers.value = [];
-          }
-
-          // Clear map listeners
-          google.value?.maps.event.clearInstanceListeners(map.value);
-          
-          // Close any open info windows
-          if (activeInfoWindow.value) {
-            activeInfoWindow.value.close();
-            activeInfoWindow.value = null;
-          }
-
-          // Hide map container to free up resources
-          if (mapContainer.value) {
-            mapContainer.value.style.visibility = 'hidden';
-          }
-        }
-
-        // Set selected entry after cleanup
-        selectedEntry.value = entry;
-
-      } catch (error) {
-        console.error('Error in handleDiaryEntryClick:', error);
-      }
+    const handleDiaryEntryClick = (entry) => {
+      selectedEntry.value = entry;
     }
 
-    const closeSelectedEntry = async () => {
-      console.log('Closing selected entry');
+    const closeSelectedEntry = () => {
       selectedEntry.value = null;
-      
-      try {
-        // Wait for the view to update
-        await nextTick();
-        
-        // Check if map container exists
-        if (!mapContainer.value || !mapElement.value) {
-          console.error('Map container or element not found');
-          return;
-        }
-
-        // Make map container visible again
-        if (mapContainer.value) {
-          mapContainer.value.style.visibility = 'visible';
-        }
-
-        // If map is not initialized or was cleaned up, initialize it
-        if (!mapInitialized || !map.value) {
-          console.log('Map not initialized, calling initMap');
-          await initMap();
-        } else {
-          console.log('Map exists, restoring view');
-          
-          // Force a resize event to ensure map renders correctly
-          if (map.value && google.value) {
-            google.value.maps.event.trigger(map.value, 'resize');
-          }
-
-          // Display all entries on map
-          await displayEntriesOnMap();
-        }
-
-      } catch (error) {
-        console.error('Error in closeSelectedEntry:', error);
-      }
     }
 
     const closeEntry = (index) => {
@@ -883,31 +811,6 @@ export default {
           imageInput.value.value = ''
         }
       }, { once: true });
-    }
-
-    const viewEntry = (entry) => {
-      selectedEntry.value = entry
-      new Modal(viewEntryModal.value).show()
-      
-      // Center map on entry location
-      nextTick(() => {
-        if (map.value && entry.location.lat && entry.location.lng) {
-          map.value.setCenter({
-            lat: entry.location.lat,
-            lng: entry.location.lng
-          })
-          map.value.setZoom(15)
-
-          // Find and trigger the marker's click event
-          const marker = markers.value.find(m => 
-            m.getPosition().lat() === entry.location.lat && 
-            m.getPosition().lng() === entry.location.lng
-          )
-          if (marker) {
-            google.value.maps.event.trigger(marker, 'click')
-          }
-        }
-      })
     }
 
     const editEntry = (entry) => {
@@ -1099,10 +1002,18 @@ export default {
         await loadEntries(); // Load entries first
         await nextTick(); // Wait for DOM update
         await initMap(); // Then initialize map
+
+        // Initialize modals
+        editorModal.value = document.getElementById('editorModal');
         imagePreviewModal.value = document.getElementById('imagePreviewModal');
+
+        // Initialize modals with Bootstrap
+        new Modal(editorModal.value);
+        new Modal(imagePreviewModal.value);
+
       } catch (err) {
         console.error('Error during component mount:', err);
-        error.value = 'Failed to initialize the application. Please refresh the page.';
+        error.value = 'Failed to initialize the application';
       }
     });
 
@@ -1117,17 +1028,6 @@ export default {
         new Collapse(collapseEl, {
           toggle: false
         });
-      });
-
-      // Initialize modals
-      editorModal.value = document.getElementById('editorModal');
-      viewEntryModal.value = document.getElementById('viewEntryModal');
-
-      // Initialize modal with options
-      new Modal(editorModal.value, {
-        keyboard: true,
-        backdrop: true,
-        focus: true
       });
 
       // Initialize dropdowns
@@ -1187,11 +1087,9 @@ export default {
       viewAllLocations,
       closeSelectedEntry,
       editorModal,
-      viewEntryModal,
       isEditing,
       openEditor,
       closeEditor,
-      viewEntry,
       editEntry,
       saveDiaryEntry,
       closeEntry,
@@ -1810,5 +1708,111 @@ export default {
 .form-label {
   font-weight: 500;
   color: #495057;
+}
+
+.entry-view-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 450px;
+  gap: 2rem;
+  min-height: 400px;
+}
+
+.entry-content {
+  padding-right: 1rem;
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
+.entry-metadata {
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+.entry-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  background-color: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.coordinates {
+  font-size: 0.9rem;
+  color: #6c757d;
+  padding-top: 1rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.entry-images {
+  overflow-y: auto;
+  max-height: 70vh;
+  padding-right: 0.5rem;
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.image-item {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.image-item:hover {
+  transform: scale(1.05);
+}
+
+.image-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-xl {
+  max-width: 1200px;
+}
+
+@media (max-width: 991px) {
+  .entry-view-layout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .entry-content {
+    padding-right: 0;
+  }
+
+  .image-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.diary-entry-display {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  background: white;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 450px;
+  gap: 2rem;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+@media (max-width: 991px) {
+  .diary-entry-display {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 }
 </style> 

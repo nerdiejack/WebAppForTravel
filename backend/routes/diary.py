@@ -89,10 +89,33 @@ async def get_diary_entry(entry_id: str):
 @router.delete("/diary/entries/{entry_id}")
 async def delete_diary_entry(entry_id: str):
     try:
+        # First get the entry to get the image paths
+        entry = await db.diary_entries.find_one({"_id": ObjectId(entry_id)})
+        if not entry:
+            raise HTTPException(status_code=404, detail="Diary entry not found")
+        
+        # Delete the images if they exist
+        if "images" in entry and entry["images"]:
+            for image_url in entry["images"]:
+                # Get the filename from the URL
+                filename = image_url.split("/")[-1]
+                
+                # Delete original image
+                original_path = f"uploads/{filename}"
+                if os.path.exists(original_path):
+                    os.remove(original_path)
+                
+                # Delete thumbnail
+                thumbnail_path = f"uploads/thumbnails/{filename}"
+                if os.path.exists(thumbnail_path):
+                    os.remove(thumbnail_path)
+        
+        # Delete the entry from database
         result = await db.diary_entries.delete_one({"_id": ObjectId(entry_id)})
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Diary entry not found")
-        return {"message": "Diary entry deleted successfully"}
+            
+        return {"message": "Diary entry and associated images deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
