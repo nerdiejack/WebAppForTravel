@@ -1253,21 +1253,28 @@ export default {
 
 .map-wrapper {
   position: relative;
-  height: 85vh;
+  height: 82vh; /* Slightly reduced to accommodate frame */
   max-width: 1400px;
   margin: 0 auto;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   background: white;
+  padding: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 
+    0 2px 12px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 .map-container {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
   z-index: 1;
 }
 
