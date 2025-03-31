@@ -1247,16 +1247,15 @@ export default {
 
 .main-content {
   flex: 1;
-  padding: 2rem;
-  height: calc(100vh - 56px); /* Subtract navbar height */
+  padding: 1rem;
   overflow: hidden;
 }
 
 .map-wrapper {
   position: relative;
-  height: 100%;
-  max-width: 1400px; /* Set maximum width */
-  margin: 0 auto; /* Center the map */
+  height: 85vh;
+  max-width: 1400px;
+  margin: 0 auto;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
