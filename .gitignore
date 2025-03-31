@@ -227,3 +227,8 @@ cython_debug/
 #.idea/
 
 /.idea/misc.xml
+
+# Environment variables
+.env
+.env.local
+.env.*.local
