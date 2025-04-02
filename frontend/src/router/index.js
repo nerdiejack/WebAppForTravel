@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
-import HotelMap from '../components/HotelMap.vue'
+import HotelView from '../components/HotelView.vue'
 import TravelDiary from '../components/TravelDiary.vue'
 import AdminDashboard from '../components/AdminDashboard.vue'
 
@@ -13,7 +13,7 @@ const routes = [
   {
     path: '/hotels',
     name: 'Hotels',
-    component: HotelMap
+    component: HotelView
   },
   {
     path: '/diary',

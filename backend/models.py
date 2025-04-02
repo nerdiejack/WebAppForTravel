@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 from bson import ObjectId
+from pydantic import validator
 
 class PyObjectId(ObjectId):
     @classmethod
@@ -53,21 +54,21 @@ class Restaurant(BaseModel):
 class HotelReservation(BaseModel):
     id: Optional[str] = None
     _id: Optional[str] = None
-    hotel_name: str
-    address: str
-    city: str
-    latitude: float
-    longitude: float
-    check_in: datetime
-    check_out: datetime
-    room_type: str
-    price_per_night: float
-    total_price: float
-    guest_name: str
-    number_of_guests: int
-    special_requests: Optional[str] = None
-    status: str = "confirmed"
-    booking_reference: Optional[str] = None
+    hotel_name: str = Field(..., min_length=1, description="Name of the hotel")
+    address: str = Field(..., min_length=1, description="Full address of the hotel")
+    city: str = Field(..., min_length=1, description="City where the hotel is located")
+    latitude: float = Field(..., ge=-90, le=90, description="Latitude coordinate of the hotel")
+    longitude: float = Field(..., ge=-180, le=180, description="Longitude coordinate of the hotel")
+    check_in: datetime = Field(..., description="Check-in date and time")
+    check_out: datetime = Field(..., description="Check-out date and time")
+    room_type: str = Field(..., min_length=1, description="Type of room booked")
+    price_per_night: float = Field(..., ge=0, description="Price per night in USD")
+    total_price: float = Field(..., ge=0, description="Total price for the entire stay")
+    guest_name: str = Field(..., min_length=1, description="Name of the guest")
+    number_of_guests: int = Field(..., ge=1, description="Number of guests staying")
+    special_requests: Optional[str] = Field(None, description="Any special requests for the stay")
+    status: str = Field("confirmed", pattern="^(confirmed|cancelled|completed)$", description="Status of the booking")
+    booking_reference: Optional[str] = Field(None, description="External booking reference number")
 
     class Config:
         json_schema_extra = {
@@ -84,9 +85,26 @@ class HotelReservation(BaseModel):
                 "total_price": 800.0,
                 "guest_name": "John Doe",
                 "number_of_guests": 2,
-                "special_requests": "High floor room"
+                "special_requests": "High floor room",
+                "status": "confirmed",
+                "booking_reference": "BK123456"
             }
         }
+
+    @validator('check_out')
+    def check_out_after_check_in(cls, v, values):
+        if 'check_in' in values and v <= values['check_in']:
+            raise ValueError('Check-out date must be after check-in date')
+        return v
+
+    @validator('total_price')
+    def validate_total_price(cls, v, values):
+        if 'price_per_night' in values and 'check_in' in values and 'check_out' in values:
+            nights = (values['check_out'] - values['check_in']).days
+            expected_total = values['price_per_night'] * nights
+            if abs(v - expected_total) > 0.01:  # Allow for small floating-point differences
+                raise ValueError('Total price does not match price per night * number of nights')
+        return v
 
 class Photo(BaseModel):
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")

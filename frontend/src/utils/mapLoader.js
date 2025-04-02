@@ -1,11 +1,13 @@
 import { Loader } from '@googlemaps/js-api-loader'
 
+const MAPS_API_KEY = process.env.VUE_APP_GOOGLE_MAPS_API_KEY;
+
 // Debug the API key
-console.log('Google Maps API Key:', process.env.VUE_APP_GOOGLE_MAPS_API_KEY ? 'Present' : 'Missing');
+console.log('Google Maps API Key:', MAPS_API_KEY ? 'Present' : 'Missing');
 
 // Create a single instance of the loader with CSP-friendly settings
 const loader = new Loader({
-  apiKey: process.env.VUE_APP_GOOGLE_MAPS_API_KEY,
+  apiKey: MAPS_API_KEY,
   version: 'weekly',
   libraries: ['places', 'geometry'],
   language: 'en',
@@ -25,12 +27,16 @@ const validateGoogleMaps = (google) => {
 
 export const loadGoogleMaps = async () => {
   try {
+    if (!MAPS_API_KEY) {
+      throw new Error('Google Maps API key is missing')
+    }
+
     if (googleMaps) {
       return validateGoogleMaps(googleMaps)
     }
 
     if (!loadPromise) {
-      console.log('Initializing Google Maps with API key:', process.env.VUE_APP_GOOGLE_MAPS_API_KEY ? 'Present' : 'Missing');
+      console.log('Initializing Google Maps...');
       loadPromise = loader.load()
         .then(google => {
           console.log('Google Maps loaded successfully');
